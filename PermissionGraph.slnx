@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="Application/Application.csproj" />
+  <Project Path="Domain/Domain.csproj" />
+  <Project Path="InfaStructure/InfaStructure.csproj" />
+  <Project Path="PermissionGraph/PermissionGraph.csproj" />
+</Solution>
