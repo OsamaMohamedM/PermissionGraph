@@ -1,0 +1,33 @@
+name: Build and test
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-test:
+    name: Build and test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.300
+
+      - name: Restore
+        run: dotnet restore PermissionGraph.slnx
+
+      - name: Build
+        run: dotnet build PermissionGraph.slnx --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test PermissionGraph.slnx --configuration Release --no-build
+
+      - name: Dependency vulnerability report
+        run: dotnet list PermissionGraph.slnx package --vulnerable --include-transitive

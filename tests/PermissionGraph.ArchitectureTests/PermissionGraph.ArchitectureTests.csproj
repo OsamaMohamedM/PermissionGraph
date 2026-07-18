@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\PermissionGraph.Api\PermissionGraph.Api.csproj" />
+    <ProjectReference Include="..\..\src\PermissionGraph.Application\PermissionGraph.Application.csproj" />
+    <ProjectReference Include="..\..\src\PermissionGraph.Contracts\PermissionGraph.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\PermissionGraph.Domain\PermissionGraph.Domain.csproj" />
+    <ProjectReference Include="..\..\src\PermissionGraph.Infrastructure\PermissionGraph.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\PermissionGraph.Worker\PermissionGraph.Worker.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="NetArchTest.Rules" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+</Project>
