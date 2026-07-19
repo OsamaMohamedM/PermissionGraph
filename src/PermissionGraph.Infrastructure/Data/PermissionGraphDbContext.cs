@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using PermissionGraph.Domain.Memberships;
+using PermissionGraph.Domain.Organizations;
 using PermissionGraph.Infrastructure.Authentication;
+using PermissionGraph.Infrastructure.AuthorizationSeed;
 
 namespace PermissionGraph.Infrastructure.Data;
 
@@ -9,9 +12,28 @@ public sealed class PermissionGraphDbContext(DbContextOptions<PermissionGraphDbC
 {
     public DbSet<RefreshSession> RefreshSessions => Set<RefreshSession>();
 
+    public DbSet<Organization> Organizations => Set<Organization>();
+
+    public DbSet<OrganizationMembership> OrganizationMemberships => Set<OrganizationMembership>();
+
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+
+    public DbSet<PermissionDefinitionRecord> PermissionDefinitions => Set<PermissionDefinitionRecord>();
+
+    public DbSet<RoleRecord> Roles => Set<RoleRecord>();
+
+    public DbSet<RolePermissionRecord> RolePermissions => Set<RolePermissionRecord>();
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        ApplyInfrastructureManagedVersions();
+        return base.SaveChangesAsync(cancellationToken);
+    }
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+        builder.ApplyConfigurationsFromAssembly(typeof(PermissionGraphDbContext).Assembly);
 
         builder.Entity<ApplicationUser>(entity =>
         {
@@ -65,5 +87,84 @@ public sealed class PermissionGraphDbContext(DbContextOptions<PermissionGraphDbC
                 .HasForeignKey(session => session.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
+
+        builder.Entity<Organization>(entity =>
+        {
+            entity.HasOne<ApplicationUser>()
+                .WithMany()
+                .HasForeignKey(organization => organization.OwnerUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<OrganizationMembership>(entity =>
+        {
+            entity.HasOne<Organization>()
+                .WithMany()
+                .HasForeignKey(membership => membership.OrganizationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne<ApplicationUser>()
+                .WithMany()
+                .HasForeignKey(membership => membership.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<PermissionDefinitionRecord>(entity =>
+        {
+            entity.HasOne<Organization>()
+                .WithMany()
+                .HasForeignKey(permission => permission.OrganizationId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<RoleRecord>(entity =>
+        {
+            entity.HasOne<Organization>()
+                .WithMany()
+                .HasForeignKey(role => role.OrganizationId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<RolePermissionRecord>(entity =>
+        {
+            entity.HasOne<RoleRecord>()
+                .WithMany()
+                .HasForeignKey(rolePermission => rolePermission.RoleId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne<PermissionDefinitionRecord>()
+                .WithMany()
+                .HasForeignKey(rolePermission => rolePermission.PermissionId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+    }
+
+    private void ApplyInfrastructureManagedVersions()
+    {
+        foreach (var entry in ChangeTracker.Entries<Organization>())
+        {
+            if (entry.State == EntityState.Added)
+            {
+                entry.Property(organization => organization.Version).CurrentValue = 1;
+            }
+            else if (entry.State == EntityState.Modified)
+            {
+                var original = entry.Property(organization => organization.Version).OriginalValue;
+                entry.Property(organization => organization.Version).CurrentValue = original + 1;
+            }
+        }
+
+        foreach (var entry in ChangeTracker.Entries<OrganizationMembership>())
+        {
+            if (entry.State == EntityState.Added)
+            {
+                entry.Property(membership => membership.Version).CurrentValue = 1;
+            }
+            else if (entry.State == EntityState.Modified)
+            {
+                var original = entry.Property(membership => membership.Version).OriginalValue;
+                entry.Property(membership => membership.Version).CurrentValue = original + 1;
+            }
+        }
     }
 }
