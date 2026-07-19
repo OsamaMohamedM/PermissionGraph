@@ -57,7 +57,7 @@ public sealed class FoundationBehaviorTests
         var response = await client.GetAsync("/__test/problem");
 
         response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
-        response.Content.Headers.ContentType?.MediaType.Should().Be("application/json");
+        response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
 
         var body = await response.Content.ReadAsStringAsync();
         body.Should().Contain("traceId");

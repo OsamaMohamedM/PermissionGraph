@@ -1,8 +1,9 @@
-using System.Security.Claims;
 using PermissionGraph.Api.Validation;
 using PermissionGraph.Application.Abstractions.Authentication;
 using PermissionGraph.Application.Authentication;
+using PermissionGraph.Application.Common.Errors;
 using PermissionGraph.Contracts.Authentication;
+using System.Security.Claims;
 
 namespace PermissionGraph.Api.Endpoints;
 
@@ -15,17 +16,17 @@ public static class AuthEndpoints
         auth.MapPost("/register", RegisterAsync)
             .AllowAnonymous()
             .RequireRateLimiting("auth-register")
-            .AddEndpointFilter<ValidationFilter<RegisterCommand>>();
+            .AddEndpointFilter<ValidationFilter<RegisterRequest>>();
 
         auth.MapPost("/login", LoginAsync)
             .AllowAnonymous()
             .RequireRateLimiting("auth-login")
-            .AddEndpointFilter<ValidationFilter<LoginCommand>>();
+            .AddEndpointFilter<ValidationFilter<LoginRequest>>();
 
         auth.MapPost("/refresh", RefreshAsync)
             .AllowAnonymous()
             .RequireRateLimiting("auth-refresh")
-            .AddEndpointFilter<ValidationFilter<RefreshCommand>>();
+            .AddEndpointFilter<ValidationFilter<RefreshRequest>>();
 
         auth.MapPost("/logout", LogoutAsync);
 
@@ -34,77 +35,55 @@ public static class AuthEndpoints
         auth.MapPost("/confirm-email", ConfirmEmailAsync)
             .AllowAnonymous()
             .RequireRateLimiting("auth-confirm-email")
-            .AddEndpointFilter<ValidationFilter<ConfirmEmailCommand>>();
+            .AddEndpointFilter<ValidationFilter<ConfirmEmailRequest>>();
 
         auth.MapPost("/forgot-password", ForgotPasswordAsync)
             .AllowAnonymous()
             .RequireRateLimiting("auth-forgot-password")
-            .AddEndpointFilter<ValidationFilter<ForgotPasswordCommand>>();
+            .AddEndpointFilter<ValidationFilter<ForgotPasswordRequest>>();
 
         auth.MapPost("/reset-password", ResetPasswordAsync)
             .AllowAnonymous()
             .RequireRateLimiting("auth-reset-password")
-            .AddEndpointFilter<ValidationFilter<ResetPasswordCommand>>();
+            .AddEndpointFilter<ValidationFilter<ResetPasswordRequest>>();
 
         var users = app.MapGroup("/api/v1/users");
 
         users.MapGet("/me", GetMeAsync);
 
         users.MapPatch("/me", UpdateMeAsync)
-            .AddEndpointFilter<ValidationFilter<UpdateCurrentUserCommand>>();
+            .AddEndpointFilter<ValidationFilter<UpdateCurrentUserRequest>>();
 
         return app;
     }
 
     private static async Task<IResult> RegisterAsync(
-        RegisterCommand command,
+        RegisterRequest request,
         IAuthenticationService authenticationService,
-        HttpContext context,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            var result = await authenticationService.RegisterAsync(command, cancellationToken);
-            return Results.Created($"/api/v1/users/{result.UserId}", ToCurrentUserResponse(result));
-        }
-        catch (AuthenticationException exception)
-        {
-            return Problem(context, StatusCodes.Status400BadRequest, exception.Message);
-        }
+        var result = await authenticationService.RegisterAsync(request.ToCommand(), cancellationToken);
+        return Results.Json(ToCurrentUserResponse(result), statusCode: StatusCodes.Status201Created);
     }
 
     private static async Task<IResult> LoginAsync(
-        LoginCommand command,
+        LoginRequest request,
         IAuthenticationService authenticationService,
         HttpContext context,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            var result = await authenticationService.LoginAsync(command, GetIpAddress(context), GetUserAgent(context), cancellationToken);
-            return Results.Ok(ToAuthResponse(result));
-        }
-        catch (AuthenticationException exception)
-        {
-            return Problem(context, StatusCodes.Status401Unauthorized, exception.Message);
-        }
+        var result = await authenticationService.LoginAsync(request.ToCommand(), GetIpAddress(context), GetUserAgent(context), cancellationToken);
+        return Results.Ok(ToAuthResponse(result));
     }
 
     private static async Task<IResult> RefreshAsync(
-        RefreshCommand command,
+        RefreshRequest request,
         IAuthenticationService authenticationService,
         HttpContext context,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            var result = await authenticationService.RefreshAsync(command, GetIpAddress(context), GetUserAgent(context), cancellationToken);
-            return Results.Ok(ToAuthResponse(result));
-        }
-        catch (AuthenticationException exception)
-        {
-            return Problem(context, StatusCodes.Status401Unauthorized, exception.Message);
-        }
+        var result = await authenticationService.RefreshAsync(request.ToCommand(), GetIpAddress(context), GetUserAgent(context), cancellationToken);
+        return Results.Ok(ToAuthResponse(result));
     }
 
     private static async Task<IResult> LogoutAsync(
@@ -115,7 +94,7 @@ public static class AuthEndpoints
         var identity = GetAuthenticatedSession(context);
         if (identity is null)
         {
-            return Results.Unauthorized();
+            throw new UnauthorizedApplicationException("invalid_token", "Authentication is required.");
         }
 
         await authenticationService.LogoutAsync(identity.Value.UserId, identity.Value.SessionId, GetIpAddress(context), cancellationToken);
@@ -130,7 +109,7 @@ public static class AuthEndpoints
         var userId = GetAuthenticatedUserId(context);
         if (userId is null)
         {
-            return Results.Unauthorized();
+            throw new UnauthorizedApplicationException("invalid_token", "Authentication is required.");
         }
 
         await authenticationService.LogoutAllAsync(userId.Value, GetIpAddress(context), cancellationToken);
@@ -138,46 +117,30 @@ public static class AuthEndpoints
     }
 
     private static async Task<IResult> ConfirmEmailAsync(
-        ConfirmEmailCommand command,
+        ConfirmEmailRequest request,
         IAuthenticationService authenticationService,
-        HttpContext context,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            await authenticationService.ConfirmEmailAsync(command, cancellationToken);
-            return Results.NoContent();
-        }
-        catch (AuthenticationException exception)
-        {
-            return Problem(context, StatusCodes.Status400BadRequest, exception.Message);
-        }
+        await authenticationService.ConfirmEmailAsync(request.ToCommand(), cancellationToken);
+        return Results.NoContent();
     }
 
     private static async Task<IResult> ForgotPasswordAsync(
-        ForgotPasswordCommand command,
+        ForgotPasswordRequest request,
         IAuthenticationService authenticationService,
         CancellationToken cancellationToken)
     {
-        await authenticationService.ForgotPasswordAsync(command, cancellationToken);
+        await authenticationService.ForgotPasswordAsync(request.ToCommand(), cancellationToken);
         return Results.NoContent();
     }
 
     private static async Task<IResult> ResetPasswordAsync(
-        ResetPasswordCommand command,
+        ResetPasswordRequest request,
         IAuthenticationService authenticationService,
-        HttpContext context,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            await authenticationService.ResetPasswordAsync(command, cancellationToken);
-            return Results.NoContent();
-        }
-        catch (AuthenticationException exception)
-        {
-            return Problem(context, StatusCodes.Status400BadRequest, exception.Message);
-        }
+        await authenticationService.ResetPasswordAsync(request.ToCommand(), cancellationToken);
+        return Results.NoContent();
     }
 
     private static async Task<IResult> GetMeAsync(
@@ -188,7 +151,7 @@ public static class AuthEndpoints
         var userId = GetAuthenticatedUserId(context);
         if (userId is null)
         {
-            return Results.Unauthorized();
+            throw new UnauthorizedApplicationException("invalid_token", "Authentication is required.");
         }
 
         var result = await authenticationService.GetCurrentUserAsync(userId.Value, cancellationToken);
@@ -196,7 +159,7 @@ public static class AuthEndpoints
     }
 
     private static async Task<IResult> UpdateMeAsync(
-        UpdateCurrentUserCommand command,
+        UpdateCurrentUserRequest request,
         IAuthenticationService authenticationService,
         HttpContext context,
         CancellationToken cancellationToken)
@@ -204,10 +167,10 @@ public static class AuthEndpoints
         var userId = GetAuthenticatedUserId(context);
         if (userId is null)
         {
-            return Results.Unauthorized();
+            throw new UnauthorizedApplicationException("invalid_token", "Authentication is required.");
         }
 
-        var result = await authenticationService.UpdateCurrentUserAsync(userId.Value, command, cancellationToken);
+        var result = await authenticationService.UpdateCurrentUserAsync(userId.Value, request.ToCommand(), cancellationToken);
         return Results.Ok(ToCurrentUserResponse(result));
     }
 
@@ -262,13 +225,5 @@ public static class AuthEndpoints
     private static string? GetUserAgent(HttpContext context)
     {
         return context.Request.Headers.UserAgent.ToString();
-    }
-
-    private static IResult Problem(HttpContext context, int statusCode, string title)
-    {
-        return Results.Problem(
-            title: title,
-            statusCode: statusCode,
-            instance: context.Request.Path);
     }
 }

@@ -5,6 +5,7 @@ using PermissionGraph.Application.Abstractions.Authentication;
 using PermissionGraph.Application.Abstractions.Clock;
 using PermissionGraph.Application.Abstractions.Email;
 using PermissionGraph.Application.Authentication;
+using PermissionGraph.Application.Common.Errors;
 using PermissionGraph.Infrastructure.Data;
 
 namespace PermissionGraph.Infrastructure.Authentication;
@@ -21,6 +22,16 @@ internal sealed class IdentityAuthenticationService(
 {
     private const string InvalidCredentialsMessage = "Invalid email or password.";
     private const string InvalidRefreshTokenMessage = "Invalid refresh token.";
+
+    private static UnauthorizedApplicationException InvalidCredentials()
+    {
+        return new UnauthorizedApplicationException("invalid_credentials", InvalidCredentialsMessage);
+    }
+
+    private static UnauthorizedApplicationException InvalidRefreshToken()
+    {
+        return new UnauthorizedApplicationException("invalid_refresh_token", InvalidRefreshTokenMessage);
+    }
 
     public async Task<CurrentUserResult> RegisterAsync(
         RegisterCommand command,
@@ -41,7 +52,7 @@ internal sealed class IdentityAuthenticationService(
         var result = await userManager.CreateAsync(user, command.Password);
         if (!result.Succeeded)
         {
-            throw new AuthenticationException("Registration could not be completed.");
+            throw new ConflictApplicationException("registration_conflict", "Registration could not be completed.");
         }
 
         if (!options.AutoConfirmEmail)
@@ -63,32 +74,32 @@ internal sealed class IdentityAuthenticationService(
         if (user is null)
         {
             logger.LogInformation("Login failed for unknown account from {IpAddress}", ipAddress);
-            throw new AuthenticationException(InvalidCredentialsMessage);
+            throw InvalidCredentials();
         }
 
         if (!user.IsActive)
         {
             logger.LogInformation("Login denied for inactive user {UserId} from {IpAddress}", user.Id, ipAddress);
-            throw new AuthenticationException(InvalidCredentialsMessage);
+            throw InvalidCredentials();
         }
 
         if (options.RequireConfirmedEmail && !await userManager.IsEmailConfirmedAsync(user))
         {
             logger.LogInformation("Login denied for unconfirmed user {UserId} from {IpAddress}", user.Id, ipAddress);
-            throw new AuthenticationException(InvalidCredentialsMessage);
+            throw InvalidCredentials();
         }
 
         if (await userManager.IsLockedOutAsync(user))
         {
             logger.LogInformation("Login denied for locked out user {UserId} from {IpAddress}", user.Id, ipAddress);
-            throw new AuthenticationException(InvalidCredentialsMessage);
+            throw InvalidCredentials();
         }
 
         if (!await userManager.CheckPasswordAsync(user, command.Password))
         {
             await userManager.AccessFailedAsync(user);
             logger.LogInformation("Login failed for user {UserId} from {IpAddress}", user.Id, ipAddress);
-            throw new AuthenticationException(InvalidCredentialsMessage);
+            throw InvalidCredentials();
         }
 
         await userManager.ResetAccessFailedCountAsync(user);
@@ -112,24 +123,24 @@ internal sealed class IdentityAuthenticationService(
 
         if (session is null)
         {
-            throw new AuthenticationException(InvalidRefreshTokenMessage);
+            throw InvalidRefreshToken();
         }
 
         if (session.RotatedAtUtc is not null || session.ReplacedBySessionId is not null)
         {
             await RevokeFamilyAsync(session.TokenFamilyId, ipAddress, cancellationToken);
             logger.LogWarning("Refresh token reuse detected for user {UserId} and family {TokenFamilyId}", session.UserId, session.TokenFamilyId);
-            throw new AuthenticationException(InvalidRefreshTokenMessage);
+            throw InvalidRefreshToken();
         }
 
         if (session.RevokedAtUtc is not null || session.ExpiresAtUtc <= now || session.User is null || !session.User.IsActive)
         {
-            throw new AuthenticationException(InvalidRefreshTokenMessage);
+            throw InvalidRefreshToken();
         }
 
         if (options.RequireConfirmedEmail && !session.User.EmailConfirmed)
         {
-            throw new AuthenticationException(InvalidRefreshTokenMessage);
+            throw InvalidRefreshToken();
         }
 
         await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
@@ -180,19 +191,19 @@ internal sealed class IdentityAuthenticationService(
     {
         if (!Guid.TryParse(command.UserId, out var userId))
         {
-            throw new AuthenticationException("Email confirmation could not be completed.");
+            throw new BadRequestApplicationException("email_confirmation_failed", "Email confirmation could not be completed.");
         }
 
         var user = await userManager.FindByIdAsync(userId.ToString());
         if (user is null)
         {
-            throw new AuthenticationException("Email confirmation could not be completed.");
+            throw new BadRequestApplicationException("email_confirmation_failed", "Email confirmation could not be completed.");
         }
 
         var result = await userManager.ConfirmEmailAsync(user, command.Token);
         if (!result.Succeeded)
         {
-            throw new AuthenticationException("Email confirmation could not be completed.");
+            throw new BadRequestApplicationException("email_confirmation_failed", "Email confirmation could not be completed.");
         }
     }
 
@@ -213,14 +224,14 @@ internal sealed class IdentityAuthenticationService(
         var user = await userManager.FindByEmailAsync(command.Email);
         if (user is null)
         {
-            throw new AuthenticationException("Password reset could not be completed.");
+            throw new BadRequestApplicationException("password_reset_failed", "Password reset could not be completed.");
         }
 
         await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
         var result = await userManager.ResetPasswordAsync(user, command.Token, command.Password);
         if (!result.Succeeded)
         {
-            throw new AuthenticationException("Password reset could not be completed.");
+            throw new BadRequestApplicationException("password_reset_failed", "Password reset could not be completed.");
         }
 
         await userManager.UpdateSecurityStampAsync(user);
@@ -236,7 +247,7 @@ internal sealed class IdentityAuthenticationService(
 
         if (user is null)
         {
-            throw new AuthenticationException("User could not be found.");
+            throw new NotFoundApplicationException("user_not_found", "User could not be found.");
         }
 
         return ToCurrentUser(user);
@@ -250,7 +261,7 @@ internal sealed class IdentityAuthenticationService(
         var user = await userManager.FindByIdAsync(userId.ToString());
         if (user is null)
         {
-            throw new AuthenticationException("User could not be found.");
+            throw new NotFoundApplicationException("user_not_found", "User could not be found.");
         }
 
         user.DisplayName = command.DisplayName;

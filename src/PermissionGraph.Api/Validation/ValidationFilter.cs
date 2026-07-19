@@ -1,4 +1,5 @@
 using FluentValidation;
+using PermissionGraph.Application.Common.Errors;
 
 namespace PermissionGraph.Api.Validation;
 
@@ -9,14 +10,10 @@ public sealed class ValidationFilter<TRequest> : IEndpointFilter
         var request = context.Arguments.OfType<TRequest>().FirstOrDefault();
         if (request is null)
         {
-            return await next(context);
+            throw new InvalidOperationException($"No argument of type {typeof(TRequest).Name} was found.");
         }
 
-        var validator = context.HttpContext.RequestServices.GetService<IValidator<TRequest>>();
-        if (validator is null)
-        {
-            return await next(context);
-        }
+        var validator = context.HttpContext.RequestServices.GetRequiredService<IValidator<TRequest>>();
 
         var result = await validator.ValidateAsync(request, context.HttpContext.RequestAborted);
         if (result.IsValid)
@@ -30,6 +27,6 @@ public sealed class ValidationFilter<TRequest> : IEndpointFilter
                 group => group.Key,
                 group => group.Select(error => error.ErrorMessage).ToArray());
 
-        return Results.ValidationProblem(errors);
+        throw new RequestValidationException(errors);
     }
 }

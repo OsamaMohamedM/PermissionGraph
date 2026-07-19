@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using PermissionGraph.Application.Abstractions.Authentication;
 using PermissionGraph.Application.Abstractions.Clock;
 using PermissionGraph.Application.Abstractions.Email;
+using PermissionGraph.Application.Authentication;
 using PermissionGraph.Infrastructure.Authentication;
 using PermissionGraph.Infrastructure.Configuration;
 using PermissionGraph.Infrastructure.Data;
@@ -51,7 +52,11 @@ public static class InfrastructureServiceCollectionExtensions
 
         services.AddScoped<JwtTokenIssuer>();
         services.AddScoped<RefreshTokenHasher>();
-        services.AddScoped<IAuthenticationService, IdentityAuthenticationService>();
+        services.AddScoped<IdentityAuthenticationService>();
+        services.AddScoped<IAuthenticationService>(serviceProvider =>
+            new ValidatingAuthenticationService(
+                serviceProvider.GetRequiredService<IdentityAuthenticationService>(),
+                serviceProvider));
         services.AddSingleton<IEmailDelivery, DevelopmentEmailDelivery>();
 
         services.AddSingleton<IConnectionMultiplexer>(_ =>

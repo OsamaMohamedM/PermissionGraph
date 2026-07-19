@@ -2,16 +2,16 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using PermissionGraph.Application.Authentication;
+using PermissionGraph.Contracts.Authentication;
 using PermissionGraph.Infrastructure.Authentication;
 using PermissionGraph.Infrastructure.Data;
 using Testcontainers.PostgreSql;
 using Testcontainers.Redis;
-using AuthResponse = PermissionGraph.Contracts.Authentication.AuthResponse;
 
 namespace PermissionGraph.IntegrationTests;
 
@@ -50,9 +50,11 @@ public sealed class AuthenticationEndpointTests : IAsyncLifetime
 
         var register = await RegisterAsync(client, "alice@example.test");
         register.StatusCode.Should().Be(HttpStatusCode.Created);
+        register.Headers.Location.Should().BeNull();
 
         var login = await LoginAsync(client, "alice@example.test");
         login.StatusCode.Should().Be(HttpStatusCode.OK);
+        login.Content.Headers.ContentType?.MediaType.Should().Be("application/json");
         var loginBody = await login.Content.ReadFromJsonAsync<AuthResponse>();
         loginBody.Should().NotBeNull();
 
@@ -65,7 +67,7 @@ public sealed class AuthenticationEndpointTests : IAsyncLifetime
         storedSession.TokenHash.Should().HaveLength(64);
         storedSession.RotatedAtUtc.Should().BeNull();
 
-        var refresh = await client.PostAsJsonAsync("/api/v1/auth/refresh", new RefreshCommand(loginBody.RefreshToken));
+        var refresh = await client.PostAsJsonAsync("/api/v1/auth/refresh", new RefreshRequest(loginBody.RefreshToken));
         refresh.StatusCode.Should().Be(HttpStatusCode.OK);
         var refreshBody = await refresh.Content.ReadFromJsonAsync<AuthResponse>();
         refreshBody.Should().NotBeNull();
@@ -87,13 +89,14 @@ public sealed class AuthenticationEndpointTests : IAsyncLifetime
         var login = await LoginAsync(client, "reuse@example.test");
         var loginBody = (await login.Content.ReadFromJsonAsync<AuthResponse>())!;
 
-        var refresh = await client.PostAsJsonAsync("/api/v1/auth/refresh", new RefreshCommand(loginBody.RefreshToken));
+        var refresh = await client.PostAsJsonAsync("/api/v1/auth/refresh", new RefreshRequest(loginBody.RefreshToken));
         var refreshBody = (await refresh.Content.ReadFromJsonAsync<AuthResponse>())!;
 
-        var reuse = await client.PostAsJsonAsync("/api/v1/auth/refresh", new RefreshCommand(loginBody.RefreshToken));
+        var reuse = await client.PostAsJsonAsync("/api/v1/auth/refresh", new RefreshRequest(loginBody.RefreshToken));
         reuse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        await AssertProblemAsync(reuse, "Invalid refresh token.");
 
-        var familyRevoked = await client.PostAsJsonAsync("/api/v1/auth/refresh", new RefreshCommand(refreshBody.RefreshToken));
+        var familyRevoked = await client.PostAsJsonAsync("/api/v1/auth/refresh", new RefreshRequest(refreshBody.RefreshToken));
         familyRevoked.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
         var sessions = await RefreshSessionsAsync(factory);
@@ -112,6 +115,7 @@ public sealed class AuthenticationEndpointTests : IAsyncLifetime
         var login = await LoginAsync(client, "inactive@example.test");
 
         login.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        await AssertProblemAsync(login, "Invalid email or password.");
     }
 
     [Fact]
@@ -142,6 +146,7 @@ public sealed class AuthenticationEndpointTests : IAsyncLifetime
         var response = await client.GetAsync("/api/v1/users/me");
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        await AssertProblemAsync(response, "Authentication is required.");
     }
 
     [Fact]
@@ -152,12 +157,89 @@ public sealed class AuthenticationEndpointTests : IAsyncLifetime
 
         for (var index = 0; index < 3; index++)
         {
-            var accepted = await client.PostAsJsonAsync("/api/v1/auth/forgot-password", new ForgotPasswordCommand("rate@example.test"));
+            var accepted = await client.PostAsJsonAsync("/api/v1/auth/forgot-password", new ForgotPasswordRequest("rate@example.test"));
             accepted.StatusCode.Should().Be(HttpStatusCode.NoContent);
         }
 
-        var limited = await client.PostAsJsonAsync("/api/v1/auth/forgot-password", new ForgotPasswordCommand("rate@example.test"));
+        var limited = await client.PostAsJsonAsync("/api/v1/auth/forgot-password", new ForgotPasswordRequest("rate@example.test"));
         limited.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+        await AssertProblemAsync(limited, "Too many requests.");
+    }
+
+    [Fact]
+    public async Task ValidationErrors_ReturnProblemDetailsWithTraceId()
+    {
+        using var factory = await CreateMigratedFactoryAsync();
+        using var client = factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync(
+            "/api/v1/auth/register",
+            new RegisterRequest("", "not-an-email", "short", "different"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var problem = await AssertProblemAsync(response, "Request validation failed.");
+        var hasErrors = TryGetErrors(problem, out var errors);
+        hasErrors.Should().BeTrue();
+        var hasEmailError = errors
+            .EnumerateObject()
+            .Any(property => property.Name.Equals("Email", StringComparison.OrdinalIgnoreCase)
+                && property.Value.GetArrayLength() > 0);
+        hasEmailError.Should().BeTrue();
+        problem.RootElement.GetProperty("traceId").GetString().Should().NotBeNullOrWhiteSpace();
+        var body = await response.Content.ReadAsStringAsync();
+        body.Should().NotContain("short");
+        body.Should().NotContain("different");
+
+        var userCount = await CountUsersAsync(factory);
+        userCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task CommandValidationErrors_ReturnSameProblemDetailsShape()
+    {
+        using var factory = await CreateMigratedFactoryAsync();
+        using var client = factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync(
+            "/api/v1/auth/register",
+            new RegisterRequest("Command Validated", "command-validation@example.test", "12345678901", "12345678901"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var problem = await AssertProblemAsync(response, "Request validation failed.");
+        var hasPasswordError = TryGetErrors(problem, out var errors)
+            && errors.EnumerateObject().Any(property => property.Name.Equals("Password", StringComparison.OrdinalIgnoreCase));
+        hasPasswordError.Should().BeTrue();
+
+        var body = await response.Content.ReadAsStringAsync();
+        body.Should().NotContain("12345678901");
+
+        var userCount = await CountUsersAsync(factory);
+        userCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task MissingRequestValidatorConfiguration_FailsFast()
+    {
+        using var factory = await CreateMigratedFactoryAsync();
+        using var client = factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync("/__test/missing-validator", new { value = "present" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+        await AssertProblemAsync(response, "An unexpected error occurred.");
+    }
+
+    [Fact]
+    public async Task DuplicateRegistration_ReturnsConflictProblemDetails()
+    {
+        using var factory = await CreateMigratedFactoryAsync();
+        using var client = factory.CreateClient();
+
+        await RegisterAsync(client, "duplicate@example.test");
+        var response = await RegisterAsync(client, "duplicate@example.test");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        await AssertProblemAsync(response, "Registration could not be completed.");
     }
 
     [Fact]
@@ -173,7 +255,7 @@ public sealed class AuthenticationEndpointTests : IAsyncLifetime
 
         var reset = await client.PostAsJsonAsync(
             "/api/v1/auth/reset-password",
-            new ResetPasswordCommand("reset@example.test", resetToken, "NewValid123!", "NewValid123!"));
+            new ResetPasswordRequest("reset@example.test", resetToken, "NewValid123!", "NewValid123!"));
         reset.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", loginBody.AccessToken);
@@ -181,7 +263,7 @@ public sealed class AuthenticationEndpointTests : IAsyncLifetime
         meWithOldAccessToken.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
         client.DefaultRequestHeaders.Authorization = null;
-        var refreshWithOldRefreshToken = await client.PostAsJsonAsync("/api/v1/auth/refresh", new RefreshCommand(loginBody.RefreshToken));
+        var refreshWithOldRefreshToken = await client.PostAsJsonAsync("/api/v1/auth/refresh", new RefreshRequest(loginBody.RefreshToken));
         refreshWithOldRefreshToken.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
@@ -204,14 +286,14 @@ public sealed class AuthenticationEndpointTests : IAsyncLifetime
     {
         return client.PostAsJsonAsync(
             "/api/v1/auth/register",
-            new RegisterCommand("Test User", email, "ValidPassword123!", "ValidPassword123!"));
+            new RegisterRequest("Test User", email, "ValidPassword123!", "ValidPassword123!"));
     }
 
     private static Task<HttpResponseMessage> LoginAsync(HttpClient client, string email)
     {
         return client.PostAsJsonAsync(
             "/api/v1/auth/login",
-            new LoginCommand(email, "ValidPassword123!"));
+            new LoginRequest(email, "ValidPassword123!"));
     }
 
     private static async Task<RefreshSession> FirstRefreshSessionAsync(PermissionGraphApiFactory factory)
@@ -226,6 +308,13 @@ public sealed class AuthenticationEndpointTests : IAsyncLifetime
         using var scope = factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<PermissionGraphDbContext>();
         return await dbContext.RefreshSessions.AsNoTracking().OrderBy(session => session.CreatedAtUtc).ToListAsync();
+    }
+
+    private static async Task<int> CountUsersAsync(PermissionGraphApiFactory factory)
+    {
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<PermissionGraphDbContext>();
+        return await dbContext.Users.CountAsync();
     }
 
     private static async Task SetUserActiveAsync(PermissionGraphApiFactory factory, string email, bool isActive)
@@ -244,5 +333,21 @@ public sealed class AuthenticationEndpointTests : IAsyncLifetime
         var user = await userManager.FindByEmailAsync(email);
         user.Should().NotBeNull();
         return await userManager.GeneratePasswordResetTokenAsync(user!);
+    }
+
+    private static async Task<JsonDocument> AssertProblemAsync(HttpResponseMessage response, string title)
+    {
+        response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
+        var document = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
+        document.RootElement.GetProperty("title").GetString().Should().Be(title);
+        document.RootElement.GetProperty("status").GetInt32().Should().Be((int)response.StatusCode);
+        document.RootElement.GetProperty("traceId").GetString().Should().NotBeNullOrWhiteSpace();
+        return document;
+    }
+
+    private static bool TryGetErrors(JsonDocument problem, out JsonElement errors)
+    {
+        return problem.RootElement.TryGetProperty("errors", out errors)
+            || problem.RootElement.TryGetProperty("Errors", out errors);
     }
 }
