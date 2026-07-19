@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace PermissionGraph.IntegrationTests;
 
@@ -8,9 +9,13 @@ internal sealed class PermissionGraphApiFactory : WebApplicationFactory<Program>
 {
     private readonly Dictionary<string, string?> _settings;
     private readonly bool _clearConfiguration;
+    private readonly Action<IServiceCollection>? _configureServices;
     private readonly Dictionary<string, string?> _previousEnvironment = [];
 
-    public PermissionGraphApiFactory(Dictionary<string, string?> settings, bool clearConfiguration = false)
+    public PermissionGraphApiFactory(
+        Dictionary<string, string?> settings,
+        bool clearConfiguration = false,
+        Action<IServiceCollection>? configureServices = null)
     {
         _settings = new Dictionary<string, string?>(settings)
         {
@@ -25,6 +30,7 @@ internal sealed class PermissionGraphApiFactory : WebApplicationFactory<Program>
             ["Authentication:NewUsersAreActive"] = "true"
         };
         _clearConfiguration = clearConfiguration;
+        _configureServices = configureServices;
 
         SetEnvironmentOverride("ConnectionStrings__PermissionGraph", "ConnectionStrings:PermissionGraph");
         SetEnvironmentOverride("ConnectionStrings__Redis", "ConnectionStrings:Redis");
@@ -51,6 +57,11 @@ internal sealed class PermissionGraphApiFactory : WebApplicationFactory<Program>
 
             configuration.AddInMemoryCollection(_settings);
         });
+
+        if (_configureServices is not null)
+        {
+            builder.ConfigureServices(_configureServices);
+        }
     }
 
     protected override void Dispose(bool disposing)
