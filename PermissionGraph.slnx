@@ -5,6 +5,8 @@
   <Project Path="src/PermissionGraph.Domain/PermissionGraph.Domain.csproj" />
   <Project Path="src/PermissionGraph.Infrastructure/PermissionGraph.Infrastructure.csproj" />
   <Project Path="src/PermissionGraph.Worker/PermissionGraph.Worker.csproj" />
+  <Project Path="tests/PermissionGraph.Application.Tests/PermissionGraph.Application.Tests.csproj" />
   <Project Path="tests/PermissionGraph.ArchitectureTests/PermissionGraph.ArchitectureTests.csproj" />
+  <Project Path="tests/PermissionGraph.Domain.Tests/PermissionGraph.Domain.Tests.csproj" />
   <Project Path="tests/PermissionGraph.IntegrationTests/PermissionGraph.IntegrationTests.csproj" />
 </Solution>
