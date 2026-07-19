@@ -101,7 +101,7 @@ public sealed class CleanArchitectureTests
                 InfrastructureAssembly
             ])
             .That()
-            .HaveNameMatching(".*Repository.*")
+            .HaveNameMatching(".*GenericRepository.*|.*Repository`.*")
             .GetTypes()
             .Should()
             .BeEmpty();
@@ -119,7 +119,7 @@ public sealed class CleanArchitectureTests
     }
 
     [Fact]
-    public void NoDomainAuthorizationTypesExistInM01()
+    public void LaterMilestoneAuthorizationEngineTypesDoNotExistInM02Step1()
     {
         Types.InAssemblies([
                 DomainAssembly,
@@ -128,7 +128,7 @@ public sealed class CleanArchitectureTests
                 ApiAssembly
             ])
             .That()
-            .HaveNameMatching(".*(Organization|Membership|RoleAssignment|CustomPermission|AuthorizationEngine).*")
+            .HaveNameMatching(".*(RoleAssignment|CustomPermission|AuthorizationEngine).*")
             .GetTypes()
             .Should()
             .BeEmpty();
