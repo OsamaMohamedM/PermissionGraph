@@ -36,6 +36,8 @@ public static class ApiPipelineExtensions
         app.MapHealthChecks("/health/live", HealthCheckResponseWriter.Live).AllowAnonymous();
         app.MapHealthChecks("/health/ready", HealthCheckResponseWriter.Ready).AllowAnonymous();
         app.MapAuthenticationEndpoints();
+        app.MapOrganizationEndpoints();
+        app.MapOrganizationMemberEndpoints();
 
         return app;
     }

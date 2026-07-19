@@ -37,6 +37,10 @@ public static class ApiRateLimitingExtensions
             AddFixedIpPolicy(options, "auth-confirm-email", 10, TimeSpan.FromMinutes(10));
             AddFixedIpPolicy(options, "auth-forgot-password", 3, TimeSpan.FromMinutes(15));
             AddFixedIpPolicy(options, "auth-reset-password", 5, TimeSpan.FromMinutes(15));
+            AddFixedIpPolicy(options, "org-transfer-ownership", 5, TimeSpan.FromMinutes(10));
+            AddFixedIpPolicy(options, "org-member-add", 20, TimeSpan.FromMinutes(1));
+            AddFixedIpPolicy(options, "org-member-mutations", 30, TimeSpan.FromMinutes(1));
+            AddFixedIpPolicy(options, "org-mutations", 30, TimeSpan.FromMinutes(1));
         });
 
         return services;
