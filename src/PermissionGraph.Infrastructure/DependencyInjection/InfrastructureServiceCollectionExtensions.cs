@@ -1,16 +1,31 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PermissionGraph.Application.Abstractions.Authentication;
+using PermissionGraph.Application.Abstractions.Audit;
 using PermissionGraph.Application.Abstractions.Clock;
+using PermissionGraph.Application.Abstractions.Data;
 using PermissionGraph.Application.Abstractions.Email;
+using PermissionGraph.Application.Abstractions.Identifiers;
+using PermissionGraph.Application.Abstractions.Memberships;
+using PermissionGraph.Application.Abstractions.Organizations;
+using PermissionGraph.Application.Abstractions.Security;
+using PermissionGraph.Application.Abstractions.Users;
 using PermissionGraph.Application.Authentication;
 using PermissionGraph.Infrastructure.Authentication;
+using PermissionGraph.Infrastructure.Audit;
+using PermissionGraph.Infrastructure.AuthorizationSeed;
 using PermissionGraph.Infrastructure.Configuration;
 using PermissionGraph.Infrastructure.Data;
 using PermissionGraph.Infrastructure.Email;
+using PermissionGraph.Infrastructure.Identifiers;
+using PermissionGraph.Infrastructure.Memberships;
+using PermissionGraph.Infrastructure.Organizations;
+using PermissionGraph.Infrastructure.Security;
 using PermissionGraph.Infrastructure.Time;
+using PermissionGraph.Infrastructure.Users;
 using StackExchange.Redis;
 
 namespace PermissionGraph.Infrastructure.DependencyInjection;
@@ -27,6 +42,8 @@ public static class InfrastructureServiceCollectionExtensions
 
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton(authenticationOptions);
+        services.AddSingleton<IGuidProvider, GuidProvider>();
+        services.AddDataProtection();
 
         services.AddDbContext<PermissionGraphDbContext>(options =>
             options.UseNpgsql(
@@ -58,6 +75,13 @@ public static class InfrastructureServiceCollectionExtensions
                 serviceProvider.GetRequiredService<IdentityAuthenticationService>(),
                 serviceProvider));
         services.AddSingleton<IEmailDelivery, DevelopmentEmailDelivery>();
+        services.AddScoped<IOrganizationRepository, EfOrganizationRepository>();
+        services.AddScoped<IOrganizationMembershipRepository, EfOrganizationMembershipRepository>();
+        services.AddScoped<IUserAccountLookup, IdentityUserAccountLookup>();
+        services.AddScoped<IRecentAuthenticationVerifier, IdentityRecentAuthenticationVerifier>();
+        services.AddScoped<IApplicationTransaction, EfApplicationTransaction>();
+        services.AddScoped<IAuditWriter, EfAuditWriter>();
+        services.AddScoped<IOrganizationSeedService, M02OrganizationSeedService>();
 
         services.AddSingleton<IConnectionMultiplexer>(_ =>
             ConnectionMultiplexer.Connect(redisConnection));
