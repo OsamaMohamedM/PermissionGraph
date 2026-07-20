@@ -39,6 +39,7 @@ public static class ApiPipelineExtensions
         app.MapOrganizationEndpoints();
         app.MapOrganizationMemberEndpoints();
         app.MapProjectEndpoints();
+        app.MapPermissionEndpoints();
 
         return app;
     }
