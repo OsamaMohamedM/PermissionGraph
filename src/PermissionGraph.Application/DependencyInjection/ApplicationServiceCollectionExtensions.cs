@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using PermissionGraph.Application.Abstractions.Users;
 using PermissionGraph.Application.Features.Memberships;
 using PermissionGraph.Application.Features.Organizations;
+using PermissionGraph.Application.Features.Projects;
 
 namespace PermissionGraph.Application.DependencyInjection;
 
@@ -13,6 +14,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddValidatorsFromAssemblyContaining<AssemblyMarker>();
         services.AddScoped<AuthenticatedUserResolver>();
         services.AddScoped<OrganizationAccess>();
+        services.AddScoped<ProjectAccess>();
 
         services.AddScoped<CreateOrganizationHandler>();
         services.AddScoped<GetOrganizationHandler>();
@@ -28,6 +30,12 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<ReactivateOrganizationMemberHandler>();
         services.AddScoped<RemoveOrganizationMemberHandler>();
         services.AddScoped<LeaveOrganizationHandler>();
+
+        services.AddScoped<CreateProjectHandler>();
+        services.AddScoped<ListProjectsHandler>();
+        services.AddScoped<GetProjectHandler>();
+        services.AddScoped<UpdateProjectHandler>();
+        services.AddScoped<ArchiveProjectHandler>();
 
         return services;
     }
