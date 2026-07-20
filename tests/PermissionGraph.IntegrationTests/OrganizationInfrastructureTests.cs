@@ -63,7 +63,7 @@ public sealed class OrganizationInfrastructureTests : IAsyncLifetime
         (await dbContext.OrganizationMemberships.CountAsync()).Should().Be(1);
         (await dbContext.OrganizationMemberships.SingleAsync()).UserId.Should().Be(owner.Id);
         (await dbContext.PermissionDefinitions.CountAsync()).Should().BeGreaterThan(0);
-        (await dbContext.Roles.CountAsync(role => role.OrganizationId == result.Id)).Should().Be(2);
+        (await dbContext.Roles.CountAsync(role => role.OrganizationId == result.Id)).Should().Be(3);
         (await dbContext.RolePermissions.CountAsync()).Should().BeGreaterThan(0);
         (await dbContext.AuditLogs.CountAsync(audit => audit.Action == "organization.created")).Should().Be(1);
     }
@@ -86,7 +86,7 @@ public sealed class OrganizationInfrastructureTests : IAsyncLifetime
         var dbContext = scope.ServiceProvider.GetRequiredService<PermissionGraphDbContext>();
         (await dbContext.Organizations.CountAsync()).Should().Be(0);
         (await dbContext.OrganizationMemberships.CountAsync()).Should().Be(0);
-        (await dbContext.PermissionDefinitions.CountAsync()).Should().Be(0);
+        (await dbContext.PermissionDefinitions.CountAsync()).Should().Be(4);
         (await dbContext.Roles.CountAsync()).Should().Be(0);
         (await dbContext.RolePermissions.CountAsync()).Should().Be(0);
         (await dbContext.AuditLogs.CountAsync()).Should().Be(0);

@@ -16,7 +16,11 @@ internal sealed class M02OrganizationSeedService(PermissionGraphDbContext dbCont
         new("pg.members.view", "Members", "View members", "Organization"),
         new("pg.members.manage", "Members", "Manage members", "Organization"),
         new("pg.members.suspend", "Members", "Suspend members", "Organization"),
-        new("pg.members.remove", "Members", "Remove members", "Organization")
+        new("pg.members.remove", "Members", "Remove members", "Organization"),
+        new("pg.projects.create", "Projects", "Create projects", "Organization"),
+        new("pg.projects.view", "Projects", "View projects", "Organization,Project"),
+        new("pg.projects.update", "Projects", "Update projects", "Project"),
+        new("pg.projects.archive", "Projects", "Archive projects", "Project")
     ];
 
     private static readonly RoleSeed[] Roles =
@@ -31,7 +35,11 @@ internal sealed class M02OrganizationSeedService(PermissionGraphDbContext dbCont
                 "pg.members.view",
                 "pg.members.manage",
                 "pg.members.suspend",
-                "pg.members.remove"
+                "pg.members.remove",
+                "pg.projects.create",
+                "pg.projects.view",
+                "pg.projects.update",
+                "pg.projects.archive"
             ]),
         new(
             "Organization Member",
@@ -40,6 +48,15 @@ internal sealed class M02OrganizationSeedService(PermissionGraphDbContext dbCont
             [
                 "pg.organizations.view",
                 "pg.members.view"
+            ]),
+        new(
+            "Project Administrator",
+            "System project administrator role.",
+            "Project",
+            [
+                "pg.projects.view",
+                "pg.projects.update",
+                "pg.projects.archive"
             ])
     ];
 
@@ -53,26 +70,27 @@ internal sealed class M02OrganizationSeedService(PermissionGraphDbContext dbCont
 
         foreach (var roleSeed in Roles)
         {
-            var role = new RoleRecord
-            {
-                Id = DeterministicGuid($"role:{organization.Id}:{roleSeed.Name}"),
-                OrganizationId = organization.Id,
-                Name = roleSeed.Name,
-                NormalizedName = Normalize(roleSeed.Name),
-                Description = roleSeed.Description,
-                ScopeType = roleSeed.ScopeType,
-                RoleType = "System",
-                IsRequestable = false,
-                IsActive = true,
-                CreatedAtUtc = now
-            };
-
-            var roleExists = await dbContext.Roles.AnyAsync(
-                item => item.OrganizationId == organization.Id && item.NormalizedName == role.NormalizedName && item.ScopeType == role.ScopeType,
+            var normalizedRoleName = Normalize(roleSeed.Name);
+            var role = await dbContext.Roles.SingleOrDefaultAsync(
+                item => item.OrganizationId == organization.Id && item.NormalizedName == normalizedRoleName && item.ScopeType == roleSeed.ScopeType,
                 cancellationToken);
 
-            if (!roleExists)
+            if (role is null)
             {
+                role = new RoleRecord
+                {
+                    Id = DeterministicGuid($"role:{organization.Id}:{roleSeed.Name}"),
+                    OrganizationId = organization.Id,
+                    Name = roleSeed.Name,
+                    NormalizedName = normalizedRoleName,
+                    Description = roleSeed.Description,
+                    ScopeType = roleSeed.ScopeType,
+                    RoleType = "System",
+                    IsRequestable = false,
+                    IsActive = true,
+                    CreatedAtUtc = now
+                };
+
                 dbContext.Roles.Add(role);
             }
 
