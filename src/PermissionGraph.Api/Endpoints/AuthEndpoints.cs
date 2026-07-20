@@ -1,4 +1,5 @@
 using PermissionGraph.Api.Validation;
+using PermissionGraph.Api.Endpoints.Mapping;
 using PermissionGraph.Application.Abstractions.Authentication;
 using PermissionGraph.Application.Authentication;
 using PermissionGraph.Application.Common.Errors;

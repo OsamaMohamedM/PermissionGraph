@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using PermissionGraph.Api.Endpoints.Mapping;
 using PermissionGraph.Api.Validation;
 using PermissionGraph.Application.Features.Memberships;
 using PermissionGraph.Contracts.OrganizationMembers;

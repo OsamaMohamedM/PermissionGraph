@@ -1,0 +1,42 @@
+using FluentValidation;
+using PermissionGraph.Application.Abstractions.Audit;
+using PermissionGraph.Application.Abstractions.Clock;
+using PermissionGraph.Application.Abstractions.Data;
+using PermissionGraph.Application.Abstractions.Users;
+using PermissionGraph.Application.Common.Errors;
+using PermissionGraph.Application.Common.Validation;
+using PermissionGraph.Domain.Common;
+
+namespace PermissionGraph.Application.Features.Organizations;
+
+public sealed class ArchiveOrganizationHandler(
+    IValidator<ArchiveOrganizationCommand> validator,
+    AuthenticatedUserResolver authenticatedUserResolver,
+    OrganizationAccess organizationAccess,
+    IAuditWriter auditWriter,
+    IApplicationTransaction transaction,
+    IClock clock)
+{
+    public async Task HandleAsync(ArchiveOrganizationCommand command, CancellationToken cancellationToken)
+    {
+        await ValidationRunner.ValidateAsync(validator, command, cancellationToken);
+        var actor = await authenticatedUserResolver.RequireActiveUserAsync(cancellationToken);
+        var organization = await organizationAccess.RequireOwnerActiveOrganizationAsync(command.OrganizationId, actor.UserId, cancellationToken);
+        var now = clock.UtcNow;
+
+        await using var scope = await transaction.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            organization.Archive(now);
+        }
+        catch (DomainRuleViolationException exception)
+        {
+            throw DomainRuleViolationMapper.ToConflict(exception);
+        }
+
+        await auditWriter.WriteAsync(
+            new AuditRecord(organization.Id, actor.UserId, "organization.archived", "Organization", organization.Id, "Succeeded", now),
+            cancellationToken);
+        await scope.CommitAsync(cancellationToken);
+    }
+}
