@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using PermissionGraph.Domain.Memberships;
 using PermissionGraph.Domain.Organizations;
+using PermissionGraph.Domain.Permissions;
 using PermissionGraph.Domain.Projects;
 using PermissionGraph.Infrastructure.Authentication;
 using PermissionGraph.Infrastructure.AuthorizationSeed;
@@ -24,7 +25,7 @@ public sealed class PermissionGraphDbContext(DbContextOptions<PermissionGraphDbC
 
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
-    public DbSet<PermissionDefinitionRecord> PermissionDefinitions => Set<PermissionDefinitionRecord>();
+    public DbSet<PermissionDefinition> PermissionDefinitions => Set<PermissionDefinition>();
 
     public DbSet<RoleRecord> Roles => Set<RoleRecord>();
 
@@ -131,7 +132,7 @@ public sealed class PermissionGraphDbContext(DbContextOptions<PermissionGraphDbC
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
-        builder.Entity<PermissionDefinitionRecord>(entity =>
+        builder.Entity<PermissionDefinition>(entity =>
         {
             entity.HasOne<Organization>()
                 .WithMany()
@@ -156,7 +157,7 @@ public sealed class PermissionGraphDbContext(DbContextOptions<PermissionGraphDbC
                 .HasForeignKey(rolePermission => rolePermission.RoleId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasOne<PermissionDefinitionRecord>()
+            entity.HasOne<PermissionDefinition>()
                 .WithMany()
                 .HasForeignKey(rolePermission => rolePermission.PermissionId)
                 .OnDelete(DeleteBehavior.Restrict);
@@ -201,6 +202,19 @@ public sealed class PermissionGraphDbContext(DbContextOptions<PermissionGraphDbC
             {
                 var original = entry.Property(project => project.Version).OriginalValue;
                 entry.Property(project => project.Version).CurrentValue = original + 1;
+            }
+        }
+
+        foreach (var entry in ChangeTracker.Entries<PermissionDefinition>())
+        {
+            if (entry.State == EntityState.Added)
+            {
+                entry.Property(permission => permission.Version).CurrentValue = 1;
+            }
+            else if (entry.State == EntityState.Modified)
+            {
+                var original = entry.Property(permission => permission.Version).OriginalValue;
+                entry.Property(permission => permission.Version).CurrentValue = original + 1;
             }
         }
     }
