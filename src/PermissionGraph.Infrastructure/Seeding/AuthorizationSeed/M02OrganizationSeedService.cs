@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PermissionGraph.Application.Abstractions.Organizations;
 using PermissionGraph.Domain.Organizations;
+using PermissionGraph.Domain.Permissions;
 using PermissionGraph.Infrastructure.Data;
 using System.Security.Cryptography;
 using System.Text;
@@ -9,20 +10,6 @@ namespace PermissionGraph.Infrastructure.AuthorizationSeed;
 
 internal sealed class M02OrganizationSeedService(PermissionGraphDbContext dbContext) : IOrganizationSeedService
 {
-    private static readonly PlatformPermissionSeed[] PlatformPermissions =
-    [
-        new("pg.organizations.view", "Organizations", "View organizations", "Organization"),
-        new("pg.organizations.update", "Organizations", "Update organizations", "Organization"),
-        new("pg.members.view", "Members", "View members", "Organization"),
-        new("pg.members.manage", "Members", "Manage members", "Organization"),
-        new("pg.members.suspend", "Members", "Suspend members", "Organization"),
-        new("pg.members.remove", "Members", "Remove members", "Organization"),
-        new("pg.projects.create", "Projects", "Create projects", "Organization"),
-        new("pg.projects.view", "Projects", "View projects", "Organization,Project"),
-        new("pg.projects.update", "Projects", "Update projects", "Project"),
-        new("pg.projects.archive", "Projects", "Archive projects", "Project")
-    ];
-
     private static readonly RoleSeed[] Roles =
     [
         new(
@@ -31,7 +18,10 @@ internal sealed class M02OrganizationSeedService(PermissionGraphDbContext dbCont
             "Organization",
             [
                 "pg.organizations.view",
+                "pg.organizations.create",
                 "pg.organizations.update",
+                "pg.organizations.archive",
+                "pg.organizations.transfer_ownership",
                 "pg.members.view",
                 "pg.members.manage",
                 "pg.members.suspend",
@@ -39,7 +29,23 @@ internal sealed class M02OrganizationSeedService(PermissionGraphDbContext dbCont
                 "pg.projects.create",
                 "pg.projects.view",
                 "pg.projects.update",
-                "pg.projects.archive"
+                "pg.projects.archive",
+                "pg.roles.view",
+                "pg.roles.create",
+                "pg.roles.update",
+                "pg.roles.archive",
+                "pg.roles.assign",
+                "pg.permissions.view",
+                "pg.permissions.create",
+                "pg.permissions.update",
+                "pg.permissions.archive",
+                "pg.access_requests.view_all",
+                "pg.access_requests.review",
+                "pg.authorization.check",
+                "pg.authorization.check_other_users",
+                "pg.authorization.explain_self",
+                "pg.authorization.explain_others",
+                "pg.audit.view"
             ]),
         new(
             "Organization Member",
@@ -47,7 +53,12 @@ internal sealed class M02OrganizationSeedService(PermissionGraphDbContext dbCont
             "Organization",
             [
                 "pg.organizations.view",
-                "pg.members.view"
+                "pg.members.view",
+                "pg.projects.view",
+                "pg.access_requests.create",
+                "pg.access_requests.view_own",
+                "pg.authorization.check",
+                "pg.authorization.explain_self"
             ]),
         new(
             "Project Administrator",
@@ -56,7 +67,16 @@ internal sealed class M02OrganizationSeedService(PermissionGraphDbContext dbCont
             [
                 "pg.projects.view",
                 "pg.projects.update",
-                "pg.projects.archive"
+                "pg.projects.archive",
+                "pg.roles.view",
+                "pg.roles.assign",
+                "pg.permissions.view",
+                "pg.access_requests.view_all",
+                "pg.access_requests.review",
+                "pg.authorization.check",
+                "pg.authorization.check_other_users",
+                "pg.authorization.explain_self",
+                "pg.authorization.explain_others"
             ])
     ];
 
@@ -70,7 +90,7 @@ internal sealed class M02OrganizationSeedService(PermissionGraphDbContext dbCont
 
         foreach (var roleSeed in Roles)
         {
-            var normalizedRoleName = Normalize(roleSeed.Name);
+            var normalizedRoleName = NormalizeRoleName(roleSeed.Name);
             var role = await dbContext.Roles.SingleOrDefaultAsync(
                 item => item.OrganizationId == organization.Id && item.NormalizedName == normalizedRoleName && item.ScopeType == roleSeed.ScopeType,
                 cancellationToken);
@@ -96,7 +116,7 @@ internal sealed class M02OrganizationSeedService(PermissionGraphDbContext dbCont
 
             foreach (var permissionKey in roleSeed.PermissionKeys)
             {
-                var permission = permissionsByKey[Normalize(permissionKey)];
+                var permission = permissionsByKey[NormalizePermissionKey(permissionKey)];
                 var mappingExists = await dbContext.RolePermissions.AnyAsync(
                     item => item.RoleId == role.Id && item.PermissionId == permission.Id,
                     cancellationToken);
@@ -115,38 +135,24 @@ internal sealed class M02OrganizationSeedService(PermissionGraphDbContext dbCont
         }
     }
 
-    private async Task<Dictionary<string, PermissionDefinitionRecord>> EnsurePlatformPermissionsAsync(
+    private async Task<Dictionary<string, PermissionDefinition>> EnsurePlatformPermissionsAsync(
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
-        var normalizedKeys = PlatformPermissions.Select(permission => Normalize(permission.Key)).ToArray();
+        var normalizedKeys = PlatformPermissionCatalog.All.Select(permission => permission.NormalizedKey).ToArray();
         var existing = await dbContext.PermissionDefinitions
             .Where(permission => permission.OrganizationId == null && normalizedKeys.Contains(permission.NormalizedKey))
             .ToDictionaryAsync(permission => permission.NormalizedKey, cancellationToken);
 
-        foreach (var seed in PlatformPermissions)
+        foreach (var seed in PlatformPermissionCatalog.All)
         {
-            var normalizedKey = Normalize(seed.Key);
+            var normalizedKey = seed.NormalizedKey;
             if (existing.ContainsKey(normalizedKey))
             {
                 continue;
             }
 
-            var permission = new PermissionDefinitionRecord
-            {
-                Id = DeterministicGuid($"permission:{normalizedKey}"),
-                OrganizationId = null,
-                Key = seed.Key,
-                NormalizedKey = normalizedKey,
-                DisplayName = seed.DisplayName,
-                Description = seed.DisplayName,
-                Module = seed.Module,
-                PermissionType = "Platform",
-                AllowedScopes = seed.AllowedScopes,
-                IsRequestable = false,
-                IsActive = true,
-                CreatedAtUtc = now
-            };
+            var permission = PlatformPermissionCatalog.ToPermissionDefinition(seed, now);
 
             dbContext.PermissionDefinitions.Add(permission);
             existing[normalizedKey] = permission;
@@ -155,9 +161,14 @@ internal sealed class M02OrganizationSeedService(PermissionGraphDbContext dbCont
         return existing;
     }
 
-    private static string Normalize(string value)
+    private static string NormalizeRoleName(string value)
     {
         return value.Trim().ToUpperInvariant();
+    }
+
+    private static string NormalizePermissionKey(string value)
+    {
+        return value.Trim().ToLowerInvariant();
     }
 
     private static Guid DeterministicGuid(string value)
@@ -165,8 +176,6 @@ internal sealed class M02OrganizationSeedService(PermissionGraphDbContext dbCont
         var bytes = MD5.HashData(Encoding.UTF8.GetBytes(value));
         return new Guid(bytes);
     }
-
-    private sealed record PlatformPermissionSeed(string Key, string Module, string DisplayName, string AllowedScopes);
 
     private sealed record RoleSeed(string Name, string Description, string ScopeType, string[] PermissionKeys);
 }
