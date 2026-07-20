@@ -387,7 +387,7 @@ namespace PermissionGraph.Infrastructure.Data.Migrations
                     b.ToTable("RefreshSessions", (string)null);
                 });
 
-            modelBuilder.Entity("PermissionGraph.Infrastructure.AuthorizationSeed.PermissionDefinitionRecord", b =>
+            modelBuilder.Entity("PermissionGraph.Domain.Permissions.PermissionDefinition", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -399,6 +399,9 @@ namespace PermissionGraph.Infrastructure.Data.Migrations
                         .HasColumnType("character varying(64)");
 
                     b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("ArchivedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Description")
@@ -439,15 +442,37 @@ namespace PermissionGraph.Infrastructure.Data.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
                     b.HasKey("Id");
 
                     b.HasIndex("NormalizedKey")
                         .IsUnique()
                         .HasFilter("\"OrganizationId\" IS NULL");
 
-                    b.HasIndex("OrganizationId", "NormalizedKey", "IsActive");
+                    b.HasIndex("Module", "IsActive");
 
-                    b.ToTable("PermissionDefinitions", (string)null);
+                    b.HasIndex("OrganizationId", "IsActive", "Id");
+
+                    b.HasIndex("OrganizationId", "NormalizedKey")
+                        .IsUnique()
+                        .HasFilter("\"OrganizationId\" IS NOT NULL");
+
+                    b.HasIndex("PermissionType", "IsActive");
+
+                    b.ToTable("PermissionDefinitions", t =>
+                        {
+                            t.HasCheckConstraint("CK_PermissionDefinitions_AllowedScopes", "\"AllowedScopes\" IN ('Organization', 'Project', 'OrganizationAndProject')");
+                            t.HasCheckConstraint("CK_PermissionDefinitions_CustomKeyPrefix", "(\"PermissionType\" <> 'Custom' OR \"Key\" NOT LIKE 'pg.%')");
+                            t.HasCheckConstraint("CK_PermissionDefinitions_Lifecycle", "((\"IsActive\" = TRUE AND \"ArchivedAtUtc\" IS NULL) OR (\"IsActive\" = FALSE AND \"ArchivedAtUtc\" IS NOT NULL))");
+                            t.HasCheckConstraint("CK_PermissionDefinitions_PermissionType", "\"PermissionType\" IN ('Platform', 'Custom')");
+                            t.HasCheckConstraint("CK_PermissionDefinitions_TypeOrganization", "((\"PermissionType\" = 'Platform' AND \"OrganizationId\" IS NULL) OR (\"PermissionType\" = 'Custom' AND \"OrganizationId\" IS NOT NULL))");
+                        });
                 });
 
             modelBuilder.Entity("PermissionGraph.Infrastructure.AuthorizationSeed.RolePermissionRecord", b =>
@@ -709,7 +734,7 @@ namespace PermissionGraph.Infrastructure.Data.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("PermissionGraph.Infrastructure.AuthorizationSeed.PermissionDefinitionRecord", b =>
+            modelBuilder.Entity("PermissionGraph.Domain.Permissions.PermissionDefinition", b =>
                 {
                     b.HasOne("PermissionGraph.Domain.Organizations.Organization", null)
                         .WithMany()
@@ -719,7 +744,7 @@ namespace PermissionGraph.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("PermissionGraph.Infrastructure.AuthorizationSeed.RolePermissionRecord", b =>
                 {
-                    b.HasOne("PermissionGraph.Infrastructure.AuthorizationSeed.PermissionDefinitionRecord", null)
+                    b.HasOne("PermissionGraph.Domain.Permissions.PermissionDefinition", null)
                         .WithMany()
                         .HasForeignKey("PermissionId")
                         .OnDelete(DeleteBehavior.Restrict)
