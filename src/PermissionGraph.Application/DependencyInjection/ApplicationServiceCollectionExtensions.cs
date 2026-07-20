@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using PermissionGraph.Application.Abstractions.Users;
 using PermissionGraph.Application.Features.Memberships;
 using PermissionGraph.Application.Features.Organizations;
+using PermissionGraph.Application.Features.Permissions;
 using PermissionGraph.Application.Features.Projects;
 
 namespace PermissionGraph.Application.DependencyInjection;
@@ -15,6 +16,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<AuthenticatedUserResolver>();
         services.AddScoped<OrganizationAccess>();
         services.AddScoped<ProjectAccess>();
+        services.AddScoped<PermissionCatalogAccess>();
 
         services.AddScoped<CreateOrganizationHandler>();
         services.AddScoped<GetOrganizationHandler>();
@@ -36,6 +38,13 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<GetProjectHandler>();
         services.AddScoped<UpdateProjectHandler>();
         services.AddScoped<ArchiveProjectHandler>();
+
+        services.AddScoped<ListPermissionsHandler>();
+        services.AddScoped<GetPermissionHandler>();
+        services.AddScoped<CreateCustomPermissionHandler>();
+        services.AddScoped<UpdateCustomPermissionHandler>();
+        services.AddScoped<ArchiveCustomPermissionHandler>();
+        services.AddScoped<ActivateCustomPermissionHandler>();
 
         return services;
     }

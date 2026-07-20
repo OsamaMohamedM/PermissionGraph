@@ -1,0 +1,12 @@
+using PermissionGraph.Domain.Permissions;
+
+namespace PermissionGraph.Application.Features.Permissions;
+
+public sealed record CreateCustomPermissionCommand(
+    Guid OrganizationId,
+    string Key,
+    string DisplayName,
+    string? Description,
+    string Module,
+    PermissionAllowedScopes AllowedScopes,
+    bool IsRequestable);
