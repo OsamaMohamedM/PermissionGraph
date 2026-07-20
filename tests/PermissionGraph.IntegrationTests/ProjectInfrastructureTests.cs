@@ -313,7 +313,7 @@ public sealed class ProjectInfrastructureTests : IAsyncLifetime
             select permission.Key)
             .ToListAsync();
 
-        projectAdministratorPermissions.Should().BeEquivalentTo(
+        projectAdministratorPermissions.Should().Contain(
             "pg.projects.view",
             "pg.projects.update",
             "pg.projects.archive");

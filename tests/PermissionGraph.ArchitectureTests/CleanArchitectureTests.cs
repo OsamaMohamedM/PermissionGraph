@@ -119,7 +119,7 @@ public sealed class CleanArchitectureTests
     }
 
     [Fact]
-    public void LaterMilestoneAuthorizationEngineTypesDoNotExistInM02Step1()
+    public void LaterMilestoneAuthorizationEngineTypesDoNotExistInM04()
     {
         Types.InAssemblies([
                 DomainAssembly,
@@ -128,7 +128,7 @@ public sealed class CleanArchitectureTests
                 ApiAssembly
             ])
             .That()
-            .HaveNameMatching(".*(RoleAssignment|CustomPermission|AuthorizationEngine).*")
+            .HaveNameMatching(".*(RoleAssignment|AuthorizationEngine).*")
             .GetTypes()
             .Should()
             .BeEmpty();

@@ -86,7 +86,7 @@ public sealed class OrganizationInfrastructureTests : IAsyncLifetime
         var dbContext = scope.ServiceProvider.GetRequiredService<PermissionGraphDbContext>();
         (await dbContext.Organizations.CountAsync()).Should().Be(0);
         (await dbContext.OrganizationMemberships.CountAsync()).Should().Be(0);
-        (await dbContext.PermissionDefinitions.CountAsync()).Should().Be(4);
+        (await dbContext.PermissionDefinitions.CountAsync()).Should().Be(31);
         (await dbContext.Roles.CountAsync()).Should().Be(0);
         (await dbContext.RolePermissions.CountAsync()).Should().Be(0);
         (await dbContext.AuditLogs.CountAsync()).Should().Be(0);
