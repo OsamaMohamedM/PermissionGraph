@@ -2,8 +2,10 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using PermissionGraph.Domain.Memberships;
 using PermissionGraph.Domain.Organizations;
+using PermissionGraph.Domain.Projects;
 using PermissionGraph.Infrastructure.Authentication;
 using PermissionGraph.Infrastructure.AuthorizationSeed;
+using PermissionGraph.Infrastructure.Projects;
 
 namespace PermissionGraph.Infrastructure.Data;
 
@@ -15,6 +17,10 @@ public sealed class PermissionGraphDbContext(DbContextOptions<PermissionGraphDbC
     public DbSet<Organization> Organizations => Set<Organization>();
 
     public DbSet<OrganizationMembership> OrganizationMemberships => Set<OrganizationMembership>();
+
+    public DbSet<Project> Projects => Set<Project>();
+
+    public DbSet<ProjectAdministratorAssignmentRecord> ProjectAdministratorAssignments => Set<ProjectAdministratorAssignmentRecord>();
 
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
@@ -109,6 +115,22 @@ public sealed class PermissionGraphDbContext(DbContextOptions<PermissionGraphDbC
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
+        builder.Entity<Project>(entity =>
+        {
+            entity.HasOne<Organization>()
+                .WithMany()
+                .HasForeignKey(project => project.OrganizationId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<ProjectAdministratorAssignmentRecord>(entity =>
+        {
+            entity.HasOne<Organization>()
+                .WithMany()
+                .HasForeignKey(assignment => assignment.OrganizationId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
         builder.Entity<PermissionDefinitionRecord>(entity =>
         {
             entity.HasOne<Organization>()
@@ -123,6 +145,8 @@ public sealed class PermissionGraphDbContext(DbContextOptions<PermissionGraphDbC
                 .WithMany()
                 .HasForeignKey(role => role.OrganizationId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasAlternateKey(role => new { role.Id, role.OrganizationId });
         });
 
         builder.Entity<RolePermissionRecord>(entity =>
@@ -164,6 +188,19 @@ public sealed class PermissionGraphDbContext(DbContextOptions<PermissionGraphDbC
             {
                 var original = entry.Property(membership => membership.Version).OriginalValue;
                 entry.Property(membership => membership.Version).CurrentValue = original + 1;
+            }
+        }
+
+        foreach (var entry in ChangeTracker.Entries<Project>())
+        {
+            if (entry.State == EntityState.Added)
+            {
+                entry.Property(project => project.Version).CurrentValue = 1;
+            }
+            else if (entry.State == EntityState.Modified)
+            {
+                var original = entry.Property(project => project.Version).OriginalValue;
+                entry.Property(project => project.Version).CurrentValue = original + 1;
             }
         }
     }

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PermissionGraph.Infrastructure.Data;
@@ -11,9 +12,11 @@ using PermissionGraph.Infrastructure.Data;
 namespace PermissionGraph.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(PermissionGraphDbContext))]
-    partial class PermissionGraphDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260720164131_M03_AddProjects")]
+    partial class M03_AddProjects
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
