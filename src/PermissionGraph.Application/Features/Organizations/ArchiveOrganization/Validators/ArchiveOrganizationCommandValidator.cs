@@ -1,6 +1,4 @@
-using FluentValidation;
-
-namespace PermissionGraph.Application.Features.Organizations;
+namespace PermissionGraph.Application.Features.Organizations.ArchiveOrganization.Validators;
 
 public sealed class ArchiveOrganizationCommandValidator : AbstractValidator<ArchiveOrganizationCommand>
 {

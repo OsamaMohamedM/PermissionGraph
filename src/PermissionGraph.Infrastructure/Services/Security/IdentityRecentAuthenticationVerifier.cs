@@ -1,8 +1,4 @@
-using Microsoft.AspNetCore.Identity;
-using PermissionGraph.Application.Abstractions.Security;
-using PermissionGraph.Infrastructure.Authentication;
-
-namespace PermissionGraph.Infrastructure.Security;
+namespace PermissionGraph.Infrastructure.Services.Security;
 
 internal sealed class IdentityRecentAuthenticationVerifier(UserManager<ApplicationUser> userManager) : IRecentAuthenticationVerifier
 {

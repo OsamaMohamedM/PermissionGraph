@@ -1,6 +1,4 @@
-using PermissionGraph.Domain.Memberships;
-
-namespace PermissionGraph.Application.Features.Memberships;
+namespace PermissionGraph.Application.Helper.Memberships.Models;
 
 public sealed record OrganizationMemberResult(
     Guid MembershipId,

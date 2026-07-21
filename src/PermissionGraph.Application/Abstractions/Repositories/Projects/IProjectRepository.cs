@@ -1,7 +1,4 @@
-using PermissionGraph.Application.Common.Pagination;
-using PermissionGraph.Domain.Projects;
-
-namespace PermissionGraph.Application.Abstractions.Projects;
+namespace PermissionGraph.Application.Abstractions.Repositories.Projects;
 
 public interface IProjectRepository
 {

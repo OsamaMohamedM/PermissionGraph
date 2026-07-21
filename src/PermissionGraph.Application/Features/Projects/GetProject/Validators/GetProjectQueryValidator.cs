@@ -1,6 +1,4 @@
-using FluentValidation;
-
-namespace PermissionGraph.Application.Features.Projects;
+namespace PermissionGraph.Application.Features.Projects.GetProject.Validators;
 
 public sealed class GetProjectQueryValidator : AbstractValidator<GetProjectQuery>
 {

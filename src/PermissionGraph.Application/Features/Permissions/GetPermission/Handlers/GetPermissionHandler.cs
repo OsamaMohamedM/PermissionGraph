@@ -1,13 +1,9 @@
-using FluentValidation;
-using PermissionGraph.Application.Abstractions.Users;
-using PermissionGraph.Application.Common.Validation;
-
-namespace PermissionGraph.Application.Features.Permissions;
+namespace PermissionGraph.Application.Features.Permissions.GetPermission.Handlers;
 
 public sealed class GetPermissionHandler(
     IValidator<GetPermissionQuery> validator,
     AuthenticatedUserResolver authenticatedUserResolver,
-    PermissionCatalogAccess permissionCatalogAccess)
+    PermissionCatalogAccessHelper permissionCatalogAccess)
 {
     public async Task<PermissionResult> HandleAsync(GetPermissionQuery query, CancellationToken cancellationToken)
     {

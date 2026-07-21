@@ -1,7 +1,4 @@
-using FluentValidation;
-using PermissionGraph.Domain.Memberships;
-
-namespace PermissionGraph.Application.Features.Memberships;
+namespace PermissionGraph.Application.Features.Memberships.ListOrganizationMembers.Validators;
 
 public sealed class ListOrganizationMembersQueryValidator : AbstractValidator<ListOrganizationMembersQuery>
 {

@@ -1,6 +1,3 @@
-using PermissionGraph.Application.Authentication;
-using PermissionGraph.Contracts.Authentication;
-
 namespace PermissionGraph.Api.Endpoints.Mapping;
 
 internal static class AuthRequestMappings

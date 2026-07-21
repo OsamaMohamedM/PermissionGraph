@@ -1,4 +1,4 @@
-namespace PermissionGraph.Application.Abstractions.Audit;
+namespace PermissionGraph.Application.Abstractions.Services.Audit;
 
 public interface IAuditWriter
 {

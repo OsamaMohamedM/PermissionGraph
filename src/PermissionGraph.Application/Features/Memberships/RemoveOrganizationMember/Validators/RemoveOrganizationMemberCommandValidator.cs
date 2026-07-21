@@ -1,6 +1,4 @@
-using FluentValidation;
-
-namespace PermissionGraph.Application.Features.Memberships;
+namespace PermissionGraph.Application.Features.Memberships.RemoveOrganizationMember.Validators;
 
 public sealed class RemoveOrganizationMemberCommandValidator : AbstractValidator<RemoveOrganizationMemberCommand>
 {

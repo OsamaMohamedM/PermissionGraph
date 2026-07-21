@@ -1,6 +1,4 @@
-using PermissionGraph.Domain.Permissions;
-
-namespace PermissionGraph.Application.Features.Permissions;
+namespace PermissionGraph.Application.Features.Permissions.CreateCustomPermission.Models;
 
 public sealed record CreateCustomPermissionCommand(
     Guid OrganizationId,

@@ -1,9 +1,3 @@
-using System.Net;
-using System.Text.Json;
-using FluentAssertions;
-using Testcontainers.PostgreSql;
-using Testcontainers.Redis;
-
 namespace PermissionGraph.IntegrationTests;
 
 public sealed class HealthEndpointTests : IAsyncLifetime

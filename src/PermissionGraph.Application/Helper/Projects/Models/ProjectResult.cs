@@ -1,6 +1,4 @@
-using PermissionGraph.Domain.Projects;
-
-namespace PermissionGraph.Application.Features.Projects;
+namespace PermissionGraph.Application.Helper.Projects.Models;
 
 public sealed record ProjectResult(
     Guid Id,

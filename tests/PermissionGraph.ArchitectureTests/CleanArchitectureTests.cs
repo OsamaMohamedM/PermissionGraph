@@ -1,11 +1,3 @@
-using FluentAssertions;
-using NetArchTest.Rules;
-using PermissionGraph.Application.Abstractions.Clock;
-using PermissionGraph.Api.Endpoints;
-using PermissionGraph.Infrastructure.Data;
-using System.Reflection;
-using System.Xml.Linq;
-
 namespace PermissionGraph.ArchitectureTests;
 
 public sealed class CleanArchitectureTests

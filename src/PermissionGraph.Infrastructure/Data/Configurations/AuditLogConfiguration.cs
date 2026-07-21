@@ -1,6 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
-
 namespace PermissionGraph.Infrastructure.Data.Configurations;
 
 internal sealed class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>

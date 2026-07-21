@@ -1,12 +1,6 @@
-using PermissionGraph.Application.Abstractions.Memberships;
-using PermissionGraph.Application.Abstractions.Organizations;
-using PermissionGraph.Application.Common.Errors;
-using PermissionGraph.Domain.Memberships;
-using PermissionGraph.Domain.Organizations;
+namespace PermissionGraph.Application.Helper.Organizations.Services;
 
-namespace PermissionGraph.Application.Features.Organizations;
-
-public sealed class OrganizationAccess(
+public sealed class OrganizationAccessHelper(
     IOrganizationRepository organizationRepository,
     IOrganizationMembershipRepository membershipRepository)
 {

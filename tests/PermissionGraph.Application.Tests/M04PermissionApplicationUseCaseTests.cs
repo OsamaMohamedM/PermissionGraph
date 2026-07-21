@@ -1,21 +1,3 @@
-using FluentAssertions;
-using PermissionGraph.Application.Abstractions.Audit;
-using PermissionGraph.Application.Abstractions.Clock;
-using PermissionGraph.Application.Abstractions.Data;
-using PermissionGraph.Application.Abstractions.Identifiers;
-using PermissionGraph.Application.Abstractions.Memberships;
-using PermissionGraph.Application.Abstractions.Organizations;
-using PermissionGraph.Application.Abstractions.Permissions;
-using PermissionGraph.Application.Abstractions.Users;
-using PermissionGraph.Application.Common.Errors;
-using PermissionGraph.Application.Common.Pagination;
-using PermissionGraph.Application.Features.Memberships;
-using PermissionGraph.Application.Features.Organizations;
-using PermissionGraph.Application.Features.Permissions;
-using PermissionGraph.Domain.Memberships;
-using PermissionGraph.Domain.Organizations;
-using PermissionGraph.Domain.Permissions;
-
 namespace PermissionGraph.Application.Tests;
 
 public sealed class M04PermissionApplicationUseCaseTests
@@ -330,8 +312,8 @@ public sealed class M04PermissionApplicationUseCaseTests
             }
 
             var resolver = new AuthenticatedUserResolver(CurrentUser, Users);
-            var organizationAccess = new OrganizationAccess(Organizations, Memberships);
-            var permissionCatalogAccess = new PermissionCatalogAccess(organizationAccess, Permissions);
+            var organizationAccess = new OrganizationAccessHelper(Organizations, Memberships);
+            var permissionCatalogAccess = new PermissionCatalogAccessHelper(organizationAccess, Permissions);
 
             ListPermissionsHandler = new ListPermissionsHandler(
                 new ListPermissionsQueryValidator(),

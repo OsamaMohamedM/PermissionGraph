@@ -1,7 +1,3 @@
-using System.Text.Json;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
-
 namespace PermissionGraph.Api.Configuration;
 
 public static class HealthCheckResponseWriter

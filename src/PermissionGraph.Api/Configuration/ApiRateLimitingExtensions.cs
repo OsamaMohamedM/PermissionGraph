@@ -1,7 +1,3 @@
-using System.Threading.RateLimiting;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.RateLimiting;
-
 namespace PermissionGraph.Api.Configuration;
 
 public static class ApiRateLimitingExtensions

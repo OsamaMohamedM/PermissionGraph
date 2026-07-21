@@ -1,4 +1,4 @@
-namespace PermissionGraph.Application.Features.Memberships;
+namespace PermissionGraph.Application.Features.Memberships.ListOrganizationMembers.Models;
 
 public sealed record ListOrganizationMembersQuery(
     Guid OrganizationId,

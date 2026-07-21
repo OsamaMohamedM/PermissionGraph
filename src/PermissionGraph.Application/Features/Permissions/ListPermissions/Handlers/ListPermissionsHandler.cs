@@ -1,15 +1,9 @@
-using FluentValidation;
-using PermissionGraph.Application.Abstractions.Permissions;
-using PermissionGraph.Application.Abstractions.Users;
-using PermissionGraph.Application.Common.Pagination;
-using PermissionGraph.Application.Common.Validation;
-
-namespace PermissionGraph.Application.Features.Permissions;
+namespace PermissionGraph.Application.Features.Permissions.ListPermissions.Handlers;
 
 public sealed class ListPermissionsHandler(
     IValidator<ListPermissionsQuery> validator,
     AuthenticatedUserResolver authenticatedUserResolver,
-    PermissionCatalogAccess permissionCatalogAccess,
+    PermissionCatalogAccessHelper permissionCatalogAccess,
     IPermissionDefinitionRepository permissionRepository)
 {
     public async Task<PageResult<PermissionResult>> HandleAsync(

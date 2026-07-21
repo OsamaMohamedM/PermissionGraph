@@ -1,5 +1,3 @@
-using FluentValidation;
-
 namespace PermissionGraph.Application.Authentication;
 
 public sealed class RegisterCommandValidator : AbstractValidator<RegisterCommand>

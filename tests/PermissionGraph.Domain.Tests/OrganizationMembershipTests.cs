@@ -1,7 +1,3 @@
-using FluentAssertions;
-using PermissionGraph.Domain.Common;
-using PermissionGraph.Domain.Memberships;
-
 namespace PermissionGraph.Domain.Tests;
 
 public sealed class OrganizationMembershipTests

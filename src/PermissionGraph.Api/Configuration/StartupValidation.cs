@@ -1,6 +1,3 @@
-using PermissionGraph.Infrastructure.DependencyInjection;
-using PermissionGraph.Infrastructure.Authentication;
-
 namespace PermissionGraph.Api.Configuration;
 
 public static class StartupValidation

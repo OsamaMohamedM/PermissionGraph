@@ -1,6 +1,4 @@
-using PermissionGraph.Application.Common.Errors;
-
-namespace PermissionGraph.Application.Abstractions.Users;
+namespace PermissionGraph.Application.Abstractions.Services.Users;
 
 public sealed class AuthenticatedUserResolver(ICurrentUser currentUser, IUserAccountLookup userAccountLookup)
 {

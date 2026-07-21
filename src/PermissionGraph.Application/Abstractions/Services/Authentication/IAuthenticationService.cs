@@ -1,6 +1,4 @@
-using PermissionGraph.Application.Authentication;
-
-namespace PermissionGraph.Application.Abstractions.Authentication;
+namespace PermissionGraph.Application.Abstractions.Services.Authentication;
 
 public interface IAuthenticationService
 {

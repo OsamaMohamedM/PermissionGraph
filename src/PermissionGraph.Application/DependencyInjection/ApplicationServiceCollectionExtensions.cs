@@ -1,11 +1,3 @@
-using FluentValidation;
-using Microsoft.Extensions.DependencyInjection;
-using PermissionGraph.Application.Abstractions.Users;
-using PermissionGraph.Application.Features.Memberships;
-using PermissionGraph.Application.Features.Organizations;
-using PermissionGraph.Application.Features.Permissions;
-using PermissionGraph.Application.Features.Projects;
-
 namespace PermissionGraph.Application.DependencyInjection;
 
 public static class ApplicationServiceCollectionExtensions
@@ -14,9 +6,9 @@ public static class ApplicationServiceCollectionExtensions
     {
         services.AddValidatorsFromAssemblyContaining<AssemblyMarker>();
         services.AddScoped<AuthenticatedUserResolver>();
-        services.AddScoped<OrganizationAccess>();
-        services.AddScoped<ProjectAccess>();
-        services.AddScoped<PermissionCatalogAccess>();
+        services.AddScoped<OrganizationAccessHelper>();
+        services.AddScoped<ProjectAccessHelper>();
+        services.AddScoped<PermissionCatalogAccessHelper>();
 
         services.AddScoped<CreateOrganizationHandler>();
         services.AddScoped<GetOrganizationHandler>();

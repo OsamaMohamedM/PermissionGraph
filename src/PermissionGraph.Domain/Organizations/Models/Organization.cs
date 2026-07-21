@@ -1,6 +1,4 @@
-using PermissionGraph.Domain.Common;
-
-namespace PermissionGraph.Domain.Organizations;
+namespace PermissionGraph.Domain.Organizations.Models;
 
 public sealed class Organization
 {

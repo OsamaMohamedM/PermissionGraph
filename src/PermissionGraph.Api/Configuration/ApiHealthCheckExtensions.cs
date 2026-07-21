@@ -1,6 +1,3 @@
-using Microsoft.Extensions.Diagnostics.HealthChecks;
-using PermissionGraph.Infrastructure.DependencyInjection;
-
 namespace PermissionGraph.Api.Configuration;
 
 public static class ApiHealthCheckExtensions

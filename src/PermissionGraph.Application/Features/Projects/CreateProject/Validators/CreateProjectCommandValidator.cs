@@ -1,7 +1,4 @@
-using FluentValidation;
-using PermissionGraph.Domain.Projects;
-
-namespace PermissionGraph.Application.Features.Projects;
+namespace PermissionGraph.Application.Features.Projects.CreateProject.Validators;
 
 public sealed class CreateProjectCommandValidator : AbstractValidator<CreateProjectCommand>
 {

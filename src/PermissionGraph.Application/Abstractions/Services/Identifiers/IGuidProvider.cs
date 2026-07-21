@@ -1,4 +1,4 @@
-namespace PermissionGraph.Application.Abstractions.Identifiers;
+namespace PermissionGraph.Application.Abstractions.Services.Identifiers;
 
 public interface IGuidProvider
 {

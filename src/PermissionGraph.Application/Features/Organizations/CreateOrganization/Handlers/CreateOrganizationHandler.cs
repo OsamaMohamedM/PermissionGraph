@@ -1,16 +1,4 @@
-using FluentValidation;
-using PermissionGraph.Application.Abstractions.Audit;
-using PermissionGraph.Application.Abstractions.Clock;
-using PermissionGraph.Application.Abstractions.Data;
-using PermissionGraph.Application.Abstractions.Identifiers;
-using PermissionGraph.Application.Abstractions.Memberships;
-using PermissionGraph.Application.Abstractions.Organizations;
-using PermissionGraph.Application.Abstractions.Users;
-using PermissionGraph.Application.Common.Validation;
-using PermissionGraph.Domain.Memberships;
-using PermissionGraph.Domain.Organizations;
-
-namespace PermissionGraph.Application.Features.Organizations;
+namespace PermissionGraph.Application.Features.Organizations.CreateOrganization.Handlers;
 
 public sealed class CreateOrganizationHandler(
     IValidator<CreateOrganizationCommand> validator,

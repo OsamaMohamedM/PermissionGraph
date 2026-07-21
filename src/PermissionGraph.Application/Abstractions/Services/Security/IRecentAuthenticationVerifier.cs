@@ -1,4 +1,4 @@
-namespace PermissionGraph.Application.Abstractions.Security;
+namespace PermissionGraph.Application.Abstractions.Services.Security;
 
 public interface IRecentAuthenticationVerifier
 {

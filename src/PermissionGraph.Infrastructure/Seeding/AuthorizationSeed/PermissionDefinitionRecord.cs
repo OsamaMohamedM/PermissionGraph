@@ -1,4 +1,4 @@
-namespace PermissionGraph.Infrastructure.AuthorizationSeed;
+namespace PermissionGraph.Infrastructure.Seeding.AuthorizationSeed;
 
 public sealed class PermissionDefinitionRecord
 {

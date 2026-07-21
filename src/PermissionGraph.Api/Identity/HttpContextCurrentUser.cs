@@ -1,6 +1,3 @@
-using System.Security.Claims;
-using PermissionGraph.Application.Abstractions.Users;
-
 namespace PermissionGraph.Api.Identity;
 
 internal sealed class HttpContextCurrentUser(IHttpContextAccessor httpContextAccessor) : ICurrentUser

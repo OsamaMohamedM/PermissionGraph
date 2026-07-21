@@ -1,11 +1,3 @@
-using FluentAssertions;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using PermissionGraph.Api.Configuration;
-using PermissionGraph.Infrastructure.Data;
-using System.Net;
-using Testcontainers.PostgreSql;
-
 namespace PermissionGraph.IntegrationTests;
 
 public sealed class FoundationBehaviorTests

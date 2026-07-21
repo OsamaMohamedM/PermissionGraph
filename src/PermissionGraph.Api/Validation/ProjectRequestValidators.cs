@@ -1,7 +1,3 @@
-using FluentValidation;
-using PermissionGraph.Api.Endpoints;
-using PermissionGraph.Contracts.Projects;
-
 namespace PermissionGraph.Api.Validation;
 
 public sealed class CreateProjectRequestValidator : AbstractValidator<CreateProjectRequest>

@@ -1,7 +1,3 @@
-using FluentAssertions;
-using PermissionGraph.Domain.Common;
-using PermissionGraph.Domain.Projects;
-
 namespace PermissionGraph.Domain.Tests;
 
 public sealed class ProjectTests

@@ -1,7 +1,4 @@
-using PermissionGraph.Application.Common.Pagination;
-using PermissionGraph.Domain.Permissions;
-
-namespace PermissionGraph.Application.Abstractions.Permissions;
+namespace PermissionGraph.Application.Abstractions.Repositories.Permissions;
 
 public interface IPermissionDefinitionRepository
 {

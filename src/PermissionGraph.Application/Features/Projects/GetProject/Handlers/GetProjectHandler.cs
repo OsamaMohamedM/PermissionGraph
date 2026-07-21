@@ -1,13 +1,9 @@
-using FluentValidation;
-using PermissionGraph.Application.Abstractions.Users;
-using PermissionGraph.Application.Common.Validation;
-
-namespace PermissionGraph.Application.Features.Projects;
+namespace PermissionGraph.Application.Features.Projects.GetProject.Handlers;
 
 public sealed class GetProjectHandler(
     IValidator<GetProjectQuery> validator,
     AuthenticatedUserResolver authenticatedUserResolver,
-    ProjectAccess projectAccess)
+    ProjectAccessHelper projectAccess)
 {
     public async Task<ProjectResult> HandleAsync(GetProjectQuery query, CancellationToken cancellationToken)
     {

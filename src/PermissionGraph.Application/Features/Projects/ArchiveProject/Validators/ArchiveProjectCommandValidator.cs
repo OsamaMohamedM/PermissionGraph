@@ -1,6 +1,4 @@
-using FluentValidation;
-
-namespace PermissionGraph.Application.Features.Projects;
+namespace PermissionGraph.Application.Features.Projects.ArchiveProject.Validators;
 
 public sealed class ArchiveProjectCommandValidator : AbstractValidator<ArchiveProjectCommand>
 {

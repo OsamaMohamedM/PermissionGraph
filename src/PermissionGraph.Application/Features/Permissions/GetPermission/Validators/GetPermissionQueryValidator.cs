@@ -1,6 +1,4 @@
-using FluentValidation;
-
-namespace PermissionGraph.Application.Features.Permissions;
+namespace PermissionGraph.Application.Features.Permissions.GetPermission.Validators;
 
 public sealed class GetPermissionQueryValidator : AbstractValidator<GetPermissionQuery>
 {

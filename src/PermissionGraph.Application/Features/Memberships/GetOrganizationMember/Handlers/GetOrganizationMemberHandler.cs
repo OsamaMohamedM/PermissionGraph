@@ -1,16 +1,9 @@
-using FluentValidation;
-using PermissionGraph.Application.Abstractions.Memberships;
-using PermissionGraph.Application.Abstractions.Users;
-using PermissionGraph.Application.Common.Validation;
-using PermissionGraph.Application.Features.Organizations;
-using PermissionGraph.Domain.Memberships;
-
-namespace PermissionGraph.Application.Features.Memberships;
+namespace PermissionGraph.Application.Features.Memberships.GetOrganizationMember.Handlers;
 
 public sealed class GetOrganizationMemberHandler(
     IValidator<GetOrganizationMemberQuery> validator,
     AuthenticatedUserResolver authenticatedUserResolver,
-    OrganizationAccess organizationAccess,
+    OrganizationAccessHelper organizationAccess,
     IOrganizationMembershipRepository membershipRepository)
 {
     public async Task<OrganizationMemberResult> HandleAsync(GetOrganizationMemberQuery query, CancellationToken cancellationToken)
@@ -22,7 +15,7 @@ public sealed class GetOrganizationMemberHandler(
         var result = await membershipRepository.GetMemberResultAsync(query.OrganizationId, query.UserId, cancellationToken);
         if (result is null || result.Status == MembershipStatus.Removed)
         {
-            throw OrganizationAccess.NotFound();
+            throw OrganizationAccessHelper.NotFound();
         }
 
         return result;

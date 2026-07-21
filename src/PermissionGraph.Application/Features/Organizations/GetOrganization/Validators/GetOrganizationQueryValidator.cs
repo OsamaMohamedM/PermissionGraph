@@ -1,6 +1,4 @@
-using FluentValidation;
-
-namespace PermissionGraph.Application.Features.Organizations;
+namespace PermissionGraph.Application.Features.Organizations.GetOrganization.Validators;
 
 public sealed class GetOrganizationQueryValidator : AbstractValidator<GetOrganizationQuery>
 {

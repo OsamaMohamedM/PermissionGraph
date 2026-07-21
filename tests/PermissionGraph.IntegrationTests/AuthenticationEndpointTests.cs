@@ -1,18 +1,3 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Net;
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
-using System.Text.Json;
-using FluentAssertions;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using PermissionGraph.Contracts.Authentication;
-using PermissionGraph.Infrastructure.Authentication;
-using PermissionGraph.Infrastructure.Data;
-using Testcontainers.PostgreSql;
-using Testcontainers.Redis;
-
 namespace PermissionGraph.IntegrationTests;
 
 public sealed class AuthenticationEndpointTests : IAsyncLifetime

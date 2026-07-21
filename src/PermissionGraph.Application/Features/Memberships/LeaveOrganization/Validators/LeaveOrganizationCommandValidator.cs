@@ -1,6 +1,4 @@
-using FluentValidation;
-
-namespace PermissionGraph.Application.Features.Memberships;
+namespace PermissionGraph.Application.Features.Memberships.LeaveOrganization.Validators;
 
 public sealed class LeaveOrganizationCommandValidator : AbstractValidator<LeaveOrganizationCommand>
 {

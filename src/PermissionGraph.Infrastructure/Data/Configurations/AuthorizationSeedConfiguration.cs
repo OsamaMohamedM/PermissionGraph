@@ -1,8 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using PermissionGraph.Domain.Permissions;
-using PermissionGraph.Infrastructure.AuthorizationSeed;
-
 namespace PermissionGraph.Infrastructure.Data.Configurations;
 
 internal sealed class PermissionDefinitionConfiguration : IEntityTypeConfiguration<PermissionDefinition>

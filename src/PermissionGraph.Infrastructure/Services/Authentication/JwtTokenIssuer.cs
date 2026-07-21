@@ -1,10 +1,4 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
-using Microsoft.IdentityModel.Tokens;
-using PermissionGraph.Application.Abstractions.Clock;
-
-namespace PermissionGraph.Infrastructure.Authentication;
+namespace PermissionGraph.Infrastructure.Services.Authentication;
 
 internal sealed class JwtTokenIssuer(AuthenticationOptions options, IClock clock)
 {
@@ -21,8 +15,8 @@ internal sealed class JwtTokenIssuer(AuthenticationOptions options, IClock clock
             new Claim(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim(JwtRegisteredClaimNames.Iat, now.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
-            new Claim(TokenClaims.SessionId, sessionId.ToString()),
-            new Claim(TokenClaims.SecurityStamp, user.SecurityStamp ?? string.Empty)
+            new Claim(TokenClaimsHelper.SessionId, sessionId.ToString()),
+            new Claim(TokenClaimsHelper.SecurityStamp, user.SecurityStamp ?? string.Empty)
         };
 
         var token = new JwtSecurityToken(

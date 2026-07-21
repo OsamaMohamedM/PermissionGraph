@@ -1,4 +1,4 @@
-namespace PermissionGraph.Domain.Organizations;
+namespace PermissionGraph.Domain.Organizations.Enums;
 
 public enum OrganizationStatus
 {

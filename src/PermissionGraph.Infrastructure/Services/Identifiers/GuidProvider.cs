@@ -1,6 +1,4 @@
-using PermissionGraph.Application.Abstractions.Identifiers;
-
-namespace PermissionGraph.Infrastructure.Identifiers;
+namespace PermissionGraph.Infrastructure.Services.Identifiers;
 
 internal sealed class GuidProvider : IGuidProvider
 {

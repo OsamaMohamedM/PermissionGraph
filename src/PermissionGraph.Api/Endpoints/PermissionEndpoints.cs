@@ -1,9 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-using PermissionGraph.Api.Endpoints.Mapping;
-using PermissionGraph.Api.Validation;
-using PermissionGraph.Application.Features.Permissions;
-using PermissionGraph.Contracts.Permissions;
-
 namespace PermissionGraph.Api.Endpoints;
 
 public static class PermissionEndpoints

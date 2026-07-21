@@ -1,8 +1,4 @@
-using Microsoft.AspNetCore.Identity;
-using PermissionGraph.Application.Abstractions.Users;
-using PermissionGraph.Infrastructure.Authentication;
-
-namespace PermissionGraph.Infrastructure.Users;
+namespace PermissionGraph.Infrastructure.Services.Users;
 
 internal sealed class IdentityUserAccountLookup(UserManager<ApplicationUser> userManager) : IUserAccountLookup
 {

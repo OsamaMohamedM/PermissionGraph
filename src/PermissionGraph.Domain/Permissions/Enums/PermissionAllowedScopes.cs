@@ -1,4 +1,4 @@
-namespace PermissionGraph.Domain.Permissions;
+namespace PermissionGraph.Domain.Permissions.Enums;
 
 public enum PermissionAllowedScopes
 {

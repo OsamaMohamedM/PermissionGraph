@@ -1,6 +1,4 @@
-using PermissionGraph.Domain.Permissions;
-
-namespace PermissionGraph.Application.Features.Permissions;
+namespace PermissionGraph.Application.Features.Permissions.ListPermissions.Models;
 
 public sealed record ListPermissionsQuery(
     Guid OrganizationId,

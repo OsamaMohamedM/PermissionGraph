@@ -1,8 +1,3 @@
-using FluentValidation;
-using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Mvc;
-using PermissionGraph.Application.Common.Errors;
-
 namespace PermissionGraph.Api.Configuration;
 
 public static class ApiExceptionHandlingExtensions

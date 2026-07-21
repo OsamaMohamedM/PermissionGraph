@@ -1,9 +1,4 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
-using PermissionGraph.Application.Abstractions.Data;
-using PermissionGraph.Application.Common.Errors;
-
-namespace PermissionGraph.Infrastructure.Data;
+namespace PermissionGraph.Infrastructure.Services.Data;
 
 internal sealed class EfApplicationTransaction(PermissionGraphDbContext dbContext) : IApplicationTransaction
 {

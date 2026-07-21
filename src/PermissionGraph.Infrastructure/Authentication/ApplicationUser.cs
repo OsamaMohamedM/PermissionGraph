@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Identity;
-
 namespace PermissionGraph.Infrastructure.Authentication;
 
 public sealed class ApplicationUser : IdentityUser<Guid>

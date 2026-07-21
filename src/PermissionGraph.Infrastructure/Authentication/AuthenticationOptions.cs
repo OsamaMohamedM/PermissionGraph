@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Configuration;
-
 namespace PermissionGraph.Infrastructure.Authentication;
 
 public sealed class AuthenticationOptions

@@ -1,6 +1,3 @@
-using PermissionGraph.Application.Features.Projects;
-using PermissionGraph.Contracts.Projects;
-
 namespace PermissionGraph.Api.Endpoints.Mapping;
 
 internal static class ProjectRequestMappings

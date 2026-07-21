@@ -1,7 +1,4 @@
-using FluentValidation;
-using PermissionGraph.Domain.Permissions;
-
-namespace PermissionGraph.Application.Features.Permissions;
+namespace PermissionGraph.Application.Features.Permissions.UpdateCustomPermission.Validators;
 
 public sealed class UpdateCustomPermissionCommandValidator : AbstractValidator<UpdateCustomPermissionCommand>
 {

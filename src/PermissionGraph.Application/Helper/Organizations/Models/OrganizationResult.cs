@@ -1,6 +1,4 @@
-using PermissionGraph.Domain.Organizations;
-
-namespace PermissionGraph.Application.Features.Organizations;
+namespace PermissionGraph.Application.Helper.Organizations.Models;
 
 public sealed record OrganizationResult(
     Guid Id,

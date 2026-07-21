@@ -1,6 +1,3 @@
-using FluentValidation;
-using PermissionGraph.Application.Common.Errors;
-
 namespace PermissionGraph.Api.Validation;
 
 public sealed class ValidationFilter<TRequest> : IEndpointFilter

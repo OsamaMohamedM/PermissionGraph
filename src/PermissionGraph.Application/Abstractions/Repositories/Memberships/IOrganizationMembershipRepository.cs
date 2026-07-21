@@ -1,8 +1,4 @@
-using PermissionGraph.Application.Common.Pagination;
-using PermissionGraph.Application.Features.Memberships;
-using PermissionGraph.Domain.Memberships;
-
-namespace PermissionGraph.Application.Abstractions.Memberships;
+namespace PermissionGraph.Application.Abstractions.Repositories.Memberships;
 
 public interface IOrganizationMembershipRepository
 {

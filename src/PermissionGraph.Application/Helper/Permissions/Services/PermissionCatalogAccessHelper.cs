@@ -1,13 +1,7 @@
-using PermissionGraph.Application.Abstractions.Permissions;
-using PermissionGraph.Application.Common.Errors;
-using PermissionGraph.Application.Features.Organizations;
-using PermissionGraph.Domain.Organizations;
-using PermissionGraph.Domain.Permissions;
+namespace PermissionGraph.Application.Helper.Permissions.Services;
 
-namespace PermissionGraph.Application.Features.Permissions;
-
-public sealed class PermissionCatalogAccess(
-    OrganizationAccess organizationAccess,
+public sealed class PermissionCatalogAccessHelper(
+    OrganizationAccessHelper organizationAccess,
     IPermissionDefinitionRepository permissionRepository)
 {
     public async Task<Organization> RequireVisibleActiveOrganizationAsync(

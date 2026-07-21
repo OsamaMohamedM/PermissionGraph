@@ -1,4 +1,4 @@
-namespace PermissionGraph.Domain.Projects;
+namespace PermissionGraph.Domain.Projects.Enums;
 
 public enum ProjectStatus
 {

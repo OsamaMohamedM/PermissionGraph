@@ -1,4 +1,4 @@
-namespace PermissionGraph.Domain.Memberships;
+namespace PermissionGraph.Domain.Memberships.Enums;
 
 public enum MembershipStatus
 {

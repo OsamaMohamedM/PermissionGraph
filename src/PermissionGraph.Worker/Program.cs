@@ -1,7 +1,3 @@
-using PermissionGraph.Infrastructure.Configuration;
-using PermissionGraph.Infrastructure.DependencyInjection;
-using Serilog;
-
 Log.Logger = new LoggerConfiguration()
     .Enrich.FromLogContext()
     .Enrich.WithEnvironmentName()
@@ -10,7 +6,7 @@ Log.Logger = new LoggerConfiguration()
 
 try
 {
-    LocalEnvironmentFile.LoadIfPresent();
+    LocalEnvironmentFileHelper.LoadIfPresent();
 
     var builder = Host.CreateApplicationBuilder(args);
 

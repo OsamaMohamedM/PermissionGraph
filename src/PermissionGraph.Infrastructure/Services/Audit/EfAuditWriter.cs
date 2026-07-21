@@ -1,8 +1,4 @@
-using PermissionGraph.Application.Abstractions.Audit;
-using PermissionGraph.Application.Abstractions.Identifiers;
-using PermissionGraph.Infrastructure.Data;
-
-namespace PermissionGraph.Infrastructure.Audit;
+namespace PermissionGraph.Infrastructure.Services.Audit;
 
 internal sealed class EfAuditWriter(PermissionGraphDbContext dbContext, IGuidProvider guidProvider) : IAuditWriter
 {

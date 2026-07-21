@@ -1,9 +1,6 @@
-using Microsoft.Extensions.Configuration;
-using Npgsql;
+namespace PermissionGraph.Infrastructure.Helper.Configuration;
 
-namespace PermissionGraph.Infrastructure.Configuration;
-
-public static class PostgreSqlConnectionString
+public static class PostgreSqlConnectionStringHelper
 {
     public static string FromConfiguration(IConfiguration configuration)
     {

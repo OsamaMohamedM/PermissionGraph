@@ -1,5 +1,3 @@
-using PermissionGraph.Domain.Common;
-
 namespace PermissionGraph.Application.Common.Errors;
 
 internal static class DomainRuleViolationMapper

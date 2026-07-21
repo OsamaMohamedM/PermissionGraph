@@ -1,7 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using PermissionGraph.Domain.Projects;
-
 namespace PermissionGraph.Infrastructure.Data.Configurations;
 
 internal sealed class ProjectConfiguration : IEntityTypeConfiguration<Project>

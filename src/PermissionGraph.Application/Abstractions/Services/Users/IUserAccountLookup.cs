@@ -1,4 +1,4 @@
-namespace PermissionGraph.Application.Abstractions.Users;
+namespace PermissionGraph.Application.Abstractions.Services.Users;
 
 public interface IUserAccountLookup
 {

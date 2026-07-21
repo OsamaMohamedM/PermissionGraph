@@ -1,20 +1,9 @@
-using FluentValidation;
-using PermissionGraph.Application.Abstractions.Audit;
-using PermissionGraph.Application.Abstractions.Clock;
-using PermissionGraph.Application.Abstractions.Data;
-using PermissionGraph.Application.Abstractions.Identifiers;
-using PermissionGraph.Application.Abstractions.Projects;
-using PermissionGraph.Application.Abstractions.Users;
-using PermissionGraph.Application.Common.Errors;
-using PermissionGraph.Application.Common.Validation;
-using PermissionGraph.Domain.Projects;
-
-namespace PermissionGraph.Application.Features.Projects;
+namespace PermissionGraph.Application.Features.Projects.CreateProject.Handlers;
 
 public sealed class CreateProjectHandler(
     IValidator<CreateProjectCommand> validator,
     AuthenticatedUserResolver authenticatedUserResolver,
-    ProjectAccess projectAccess,
+    ProjectAccessHelper projectAccess,
     IProjectRepository projectRepository,
     IProjectAdministratorAssignmentService projectAdministratorAssignmentService,
     IAuditWriter auditWriter,

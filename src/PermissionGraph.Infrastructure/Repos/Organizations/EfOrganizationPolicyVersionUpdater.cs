@@ -1,9 +1,4 @@
-using Microsoft.EntityFrameworkCore;
-using PermissionGraph.Application.Abstractions.Organizations;
-using PermissionGraph.Domain.Organizations;
-using PermissionGraph.Infrastructure.Data;
-
-namespace PermissionGraph.Infrastructure.Organizations;
+namespace PermissionGraph.Infrastructure.Repos.Organizations;
 
 internal sealed class EfOrganizationPolicyVersionUpdater(PermissionGraphDbContext dbContext) : IOrganizationPolicyVersionUpdater
 {

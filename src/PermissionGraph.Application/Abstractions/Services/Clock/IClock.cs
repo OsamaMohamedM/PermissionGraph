@@ -1,4 +1,4 @@
-namespace PermissionGraph.Application.Abstractions.Clock;
+namespace PermissionGraph.Application.Abstractions.Services.Clock;
 
 public interface IClock
 {

@@ -1,14 +1,4 @@
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using PermissionGraph.Application.Abstractions.Authentication;
-using PermissionGraph.Application.Abstractions.Clock;
-using PermissionGraph.Application.Abstractions.Email;
-using PermissionGraph.Application.Authentication;
-using PermissionGraph.Application.Common.Errors;
-using PermissionGraph.Infrastructure.Data;
-
-namespace PermissionGraph.Infrastructure.Authentication;
+namespace PermissionGraph.Infrastructure.Services.Authentication;
 
 internal sealed class IdentityAuthenticationService(
     UserManager<ApplicationUser> userManager,
@@ -277,7 +267,7 @@ internal sealed class IdentityAuthenticationService(
         string? userAgent,
         CancellationToken cancellationToken)
     {
-        var refreshToken = RefreshTokenGenerator.Create();
+        var refreshToken = RefreshTokenGeneratorHelper.Create();
         var now = clock.UtcNow;
         var session = new RefreshSession
         {

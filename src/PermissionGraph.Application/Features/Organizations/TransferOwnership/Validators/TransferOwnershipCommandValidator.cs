@@ -1,6 +1,4 @@
-using FluentValidation;
-
-namespace PermissionGraph.Application.Features.Organizations;
+namespace PermissionGraph.Application.Features.Organizations.TransferOwnership.Validators;
 
 public sealed class TransferOwnershipCommandValidator : AbstractValidator<TransferOwnershipCommand>
 {

@@ -1,13 +1,3 @@
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore;
-using PermissionGraph.Domain.Memberships;
-using PermissionGraph.Domain.Organizations;
-using PermissionGraph.Domain.Permissions;
-using PermissionGraph.Domain.Projects;
-using PermissionGraph.Infrastructure.Authentication;
-using PermissionGraph.Infrastructure.AuthorizationSeed;
-using PermissionGraph.Infrastructure.Projects;
-
 namespace PermissionGraph.Infrastructure.Data;
 
 public sealed class PermissionGraphDbContext(DbContextOptions<PermissionGraphDbContext> options)

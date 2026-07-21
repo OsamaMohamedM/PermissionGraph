@@ -1,6 +1,4 @@
-using PermissionGraph.Domain.Common;
-
-namespace PermissionGraph.Domain.Projects;
+namespace PermissionGraph.Domain.Projects.Models;
 
 public sealed class Project
 {

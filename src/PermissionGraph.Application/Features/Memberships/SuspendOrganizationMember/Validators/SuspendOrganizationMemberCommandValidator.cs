@@ -1,6 +1,4 @@
-using FluentValidation;
-
-namespace PermissionGraph.Application.Features.Memberships;
+namespace PermissionGraph.Application.Features.Memberships.SuspendOrganizationMember.Validators;
 
 public sealed class SuspendOrganizationMemberCommandValidator : AbstractValidator<SuspendOrganizationMemberCommand>
 {

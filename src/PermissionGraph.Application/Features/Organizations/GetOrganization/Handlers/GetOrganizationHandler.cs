@@ -1,13 +1,9 @@
-using FluentValidation;
-using PermissionGraph.Application.Abstractions.Users;
-using PermissionGraph.Application.Common.Validation;
-
-namespace PermissionGraph.Application.Features.Organizations;
+namespace PermissionGraph.Application.Features.Organizations.GetOrganization.Handlers;
 
 public sealed class GetOrganizationHandler(
     IValidator<GetOrganizationQuery> validator,
     AuthenticatedUserResolver authenticatedUserResolver,
-    OrganizationAccess organizationAccess)
+    OrganizationAccessHelper organizationAccess)
 {
     public async Task<OrganizationResult> HandleAsync(GetOrganizationQuery query, CancellationToken cancellationToken)
     {

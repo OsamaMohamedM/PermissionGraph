@@ -1,21 +1,3 @@
-using FluentAssertions;
-using PermissionGraph.Application.Abstractions.Audit;
-using PermissionGraph.Application.Abstractions.Clock;
-using PermissionGraph.Application.Abstractions.Data;
-using PermissionGraph.Application.Abstractions.Identifiers;
-using PermissionGraph.Application.Abstractions.Memberships;
-using PermissionGraph.Application.Abstractions.Organizations;
-using PermissionGraph.Application.Abstractions.Projects;
-using PermissionGraph.Application.Abstractions.Users;
-using PermissionGraph.Application.Common.Errors;
-using PermissionGraph.Application.Common.Pagination;
-using PermissionGraph.Application.Features.Memberships;
-using PermissionGraph.Application.Features.Organizations;
-using PermissionGraph.Application.Features.Projects;
-using PermissionGraph.Domain.Memberships;
-using PermissionGraph.Domain.Organizations;
-using PermissionGraph.Domain.Projects;
-
 namespace PermissionGraph.Application.Tests;
 
 public sealed class M03ProjectApplicationUseCaseTests
@@ -301,8 +283,8 @@ public sealed class M03ProjectApplicationUseCaseTests
             Users.Accounts[OtherUserId] = new UserAccount(OtherUserId, "other@permissiongraph.local", "Other", IsActive: true);
 
             var resolver = new AuthenticatedUserResolver(CurrentUser, Users);
-            var organizationAccess = new OrganizationAccess(Organizations, Memberships);
-            var projectAccess = new ProjectAccess(organizationAccess, Projects);
+            var organizationAccess = new OrganizationAccessHelper(Organizations, Memberships);
+            var projectAccess = new ProjectAccessHelper(organizationAccess, Projects);
 
             CreateProjectHandler = new CreateProjectHandler(
                 new CreateProjectCommandValidator(),

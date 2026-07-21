@@ -1,6 +1,3 @@
-using PermissionGraph.Api.Endpoints;
-using PermissionGraph.Api.Validation;
-
 namespace PermissionGraph.Api.Configuration;
 
 public static class ApiPipelineExtensions

@@ -1,8 +1,4 @@
-using System.Security.Cryptography;
-using System.Text;
-using PermissionGraph.Domain.Permissions;
-
-namespace PermissionGraph.Infrastructure.AuthorizationSeed;
+namespace PermissionGraph.Infrastructure.Seeding.AuthorizationSeed;
 
 internal static class PlatformPermissionCatalog
 {

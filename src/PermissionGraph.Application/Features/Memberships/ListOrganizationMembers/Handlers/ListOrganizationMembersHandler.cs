@@ -1,16 +1,9 @@
-using FluentValidation;
-using PermissionGraph.Application.Abstractions.Memberships;
-using PermissionGraph.Application.Abstractions.Users;
-using PermissionGraph.Application.Common.Pagination;
-using PermissionGraph.Application.Common.Validation;
-using PermissionGraph.Application.Features.Organizations;
-
-namespace PermissionGraph.Application.Features.Memberships;
+namespace PermissionGraph.Application.Features.Memberships.ListOrganizationMembers.Handlers;
 
 public sealed class ListOrganizationMembersHandler(
     IValidator<ListOrganizationMembersQuery> validator,
     AuthenticatedUserResolver authenticatedUserResolver,
-    OrganizationAccess organizationAccess,
+    OrganizationAccessHelper organizationAccess,
     IOrganizationMembershipRepository membershipRepository)
 {
     public async Task<PagedResult<OrganizationMemberResult>> HandleAsync(ListOrganizationMembersQuery query, CancellationToken cancellationToken)

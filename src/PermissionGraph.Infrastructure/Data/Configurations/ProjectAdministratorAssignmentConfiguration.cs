@@ -1,10 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using PermissionGraph.Domain.Projects;
-using PermissionGraph.Infrastructure.Authentication;
-using PermissionGraph.Infrastructure.AuthorizationSeed;
-using PermissionGraph.Infrastructure.Projects;
-
 namespace PermissionGraph.Infrastructure.Data.Configurations;
 
 internal sealed class ProjectAdministratorAssignmentConfiguration : IEntityTypeConfiguration<ProjectAdministratorAssignmentRecord>

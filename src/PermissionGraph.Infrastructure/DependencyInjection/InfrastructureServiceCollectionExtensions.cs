@@ -1,37 +1,3 @@
-using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using PermissionGraph.Application.Abstractions.Authentication;
-using PermissionGraph.Application.Abstractions.Audit;
-using PermissionGraph.Application.Abstractions.Clock;
-using PermissionGraph.Application.Abstractions.Data;
-using PermissionGraph.Application.Abstractions.Email;
-using PermissionGraph.Application.Abstractions.Identifiers;
-using PermissionGraph.Application.Abstractions.Memberships;
-using PermissionGraph.Application.Abstractions.Organizations;
-using PermissionGraph.Application.Abstractions.Permissions;
-using PermissionGraph.Application.Abstractions.Projects;
-using PermissionGraph.Application.Abstractions.Security;
-using PermissionGraph.Application.Abstractions.Users;
-using PermissionGraph.Application.Authentication;
-using PermissionGraph.Infrastructure.Authentication;
-using PermissionGraph.Infrastructure.Audit;
-using PermissionGraph.Infrastructure.AuthorizationSeed;
-using PermissionGraph.Infrastructure.Configuration;
-using PermissionGraph.Infrastructure.Data;
-using PermissionGraph.Infrastructure.Email;
-using PermissionGraph.Infrastructure.Identifiers;
-using PermissionGraph.Infrastructure.Memberships;
-using PermissionGraph.Infrastructure.Organizations;
-using PermissionGraph.Infrastructure.Permissions;
-using PermissionGraph.Infrastructure.Projects;
-using PermissionGraph.Infrastructure.Security;
-using PermissionGraph.Infrastructure.Time;
-using PermissionGraph.Infrastructure.Users;
-using StackExchange.Redis;
-
 namespace PermissionGraph.Infrastructure.DependencyInjection;
 
 public static class InfrastructureServiceCollectionExtensions
@@ -100,7 +66,7 @@ public static class InfrastructureServiceCollectionExtensions
     public static string RequireConnectionString(IConfiguration configuration, string name)
     {
         var connectionString = name == "PermissionGraph"
-            ? PostgreSqlConnectionString.FromConfiguration(configuration)
+            ? PostgreSqlConnectionStringHelper.FromConfiguration(configuration)
             : configuration.GetConnectionString(name);
 
         if (string.IsNullOrWhiteSpace(connectionString))

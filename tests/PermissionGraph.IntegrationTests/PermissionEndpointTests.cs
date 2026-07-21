@@ -1,21 +1,3 @@
-using System.Net;
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
-using System.Text.Json;
-using FluentAssertions;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using PermissionGraph.Application.Abstractions.Audit;
-using PermissionGraph.Contracts.Authentication;
-using PermissionGraph.Contracts.OrganizationMembers;
-using PermissionGraph.Contracts.Organizations;
-using PermissionGraph.Contracts.Permissions;
-using PermissionGraph.Domain.Permissions;
-using PermissionGraph.Infrastructure.Data;
-using Testcontainers.PostgreSql;
-using Testcontainers.Redis;
-
 namespace PermissionGraph.IntegrationTests;
 
 public sealed class PermissionEndpointTests : IAsyncLifetime

@@ -1,7 +1,4 @@
-using System.Security.Cryptography;
-using System.Text;
-
-namespace PermissionGraph.Infrastructure.Authentication;
+namespace PermissionGraph.Infrastructure.Services.Authentication;
 
 internal sealed class RefreshTokenHasher(AuthenticationOptions options)
 {

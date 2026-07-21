@@ -1,4 +1,4 @@
-namespace PermissionGraph.Application.Abstractions.Organizations;
+namespace PermissionGraph.Application.Abstractions.Services.Organizations;
 
 public interface IOrganizationPolicyVersionUpdater
 {

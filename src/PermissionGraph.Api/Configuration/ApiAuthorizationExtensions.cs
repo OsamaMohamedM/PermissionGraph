@@ -1,7 +1,3 @@
-using Microsoft.AspNetCore.Authorization;
-using PermissionGraph.Api.Identity;
-using PermissionGraph.Application.Abstractions.Users;
-
 namespace PermissionGraph.Api.Configuration;
 
 public static class ApiAuthorizationExtensions

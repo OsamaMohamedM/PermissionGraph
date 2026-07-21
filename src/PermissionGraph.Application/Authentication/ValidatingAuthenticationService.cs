@@ -1,8 +1,3 @@
-using FluentValidation;
-using Microsoft.Extensions.DependencyInjection;
-using PermissionGraph.Application.Abstractions.Authentication;
-using PermissionGraph.Application.Common.Errors;
-
 namespace PermissionGraph.Application.Authentication;
 
 public sealed class ValidatingAuthenticationService(

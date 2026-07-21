@@ -1,12 +1,4 @@
-using Microsoft.EntityFrameworkCore;
-using PermissionGraph.Application.Abstractions.Audit;
-using PermissionGraph.Application.Abstractions.Clock;
-using PermissionGraph.Application.Abstractions.Identifiers;
-using PermissionGraph.Application.Abstractions.Projects;
-using PermissionGraph.Domain.Projects;
-using PermissionGraph.Infrastructure.Data;
-
-namespace PermissionGraph.Infrastructure.Projects;
+namespace PermissionGraph.Infrastructure.Services.Projects;
 
 internal sealed class EfProjectAdministratorAssignmentService(
     PermissionGraphDbContext dbContext,

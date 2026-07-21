@@ -1,7 +1,4 @@
-using PermissionGraph.Application.Common.Pagination;
-using PermissionGraph.Domain.Organizations;
-
-namespace PermissionGraph.Application.Abstractions.Organizations;
+namespace PermissionGraph.Application.Abstractions.Repositories.Organizations;
 
 public interface IOrganizationRepository
 {

@@ -1,6 +1,3 @@
-using FluentValidation;
-using PermissionGraph.Contracts.Authentication;
-
 namespace PermissionGraph.Api.Validation;
 
 public sealed class RegisterRequestValidator : AbstractValidator<RegisterRequest>

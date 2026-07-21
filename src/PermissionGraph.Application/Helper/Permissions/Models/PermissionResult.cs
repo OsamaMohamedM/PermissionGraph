@@ -1,6 +1,4 @@
-using PermissionGraph.Domain.Permissions;
-
-namespace PermissionGraph.Application.Features.Permissions;
+namespace PermissionGraph.Application.Helper.Permissions.Models;
 
 public sealed record PermissionResult(
     Guid Id,

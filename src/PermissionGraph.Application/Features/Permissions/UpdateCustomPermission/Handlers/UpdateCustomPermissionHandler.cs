@@ -1,19 +1,9 @@
-using FluentValidation;
-using PermissionGraph.Application.Abstractions.Audit;
-using PermissionGraph.Application.Abstractions.Clock;
-using PermissionGraph.Application.Abstractions.Data;
-using PermissionGraph.Application.Abstractions.Organizations;
-using PermissionGraph.Application.Abstractions.Users;
-using PermissionGraph.Application.Common.Errors;
-using PermissionGraph.Application.Common.Validation;
-using PermissionGraph.Domain.Common;
-
-namespace PermissionGraph.Application.Features.Permissions;
+namespace PermissionGraph.Application.Features.Permissions.UpdateCustomPermission.Handlers;
 
 public sealed class UpdateCustomPermissionHandler(
     IValidator<UpdateCustomPermissionCommand> validator,
     AuthenticatedUserResolver authenticatedUserResolver,
-    PermissionCatalogAccess permissionCatalogAccess,
+    PermissionCatalogAccessHelper permissionCatalogAccess,
     IOrganizationPolicyVersionUpdater policyVersionUpdater,
     IAuditWriter auditWriter,
     IApplicationTransaction transaction,

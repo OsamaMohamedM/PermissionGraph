@@ -1,11 +1,3 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
-using PermissionGraph.Infrastructure.Authentication;
-using PermissionGraph.Infrastructure.Data;
-using System.Security.Claims;
-using System.Text;
-
 namespace PermissionGraph.Api.Configuration;
 
 public static class ApiAuthenticationExtensions
@@ -37,7 +29,7 @@ public static class ApiAuthenticationExtensions
                     OnTokenValidated = async context =>
                     {
                         var userIdValue = context.Principal?.FindFirstValue("sub");
-                        var securityStamp = context.Principal?.FindFirstValue(TokenClaims.SecurityStamp);
+                        var securityStamp = context.Principal?.FindFirstValue(TokenClaimsHelper.SecurityStamp);
 
                         if (!Guid.TryParse(userIdValue, out var userId) || string.IsNullOrWhiteSpace(securityStamp))
                         {

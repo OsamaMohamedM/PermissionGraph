@@ -1,19 +1,3 @@
-using FluentAssertions;
-using PermissionGraph.Application.Abstractions.Audit;
-using PermissionGraph.Application.Abstractions.Clock;
-using PermissionGraph.Application.Abstractions.Data;
-using PermissionGraph.Application.Abstractions.Identifiers;
-using PermissionGraph.Application.Abstractions.Memberships;
-using PermissionGraph.Application.Abstractions.Organizations;
-using PermissionGraph.Application.Abstractions.Security;
-using PermissionGraph.Application.Abstractions.Users;
-using PermissionGraph.Application.Common.Errors;
-using PermissionGraph.Application.Common.Pagination;
-using PermissionGraph.Application.Features.Memberships;
-using PermissionGraph.Application.Features.Organizations;
-using PermissionGraph.Domain.Memberships;
-using PermissionGraph.Domain.Organizations;
-
 namespace PermissionGraph.Application.Tests;
 
 public sealed class M02ApplicationUseCaseTests
@@ -317,7 +301,7 @@ public sealed class M02ApplicationUseCaseTests
             Users.Accounts[OtherUserId] = new UserAccount(OtherUserId, "other@permissiongraph.local", "Other", IsActive: true);
 
             var resolver = new AuthenticatedUserResolver(CurrentUser, Users);
-            var access = new OrganizationAccess(Organizations, Memberships);
+            var access = new OrganizationAccessHelper(Organizations, Memberships);
 
             CreateOrganizationHandler = new CreateOrganizationHandler(
                 new CreateOrganizationCommandValidator(),

@@ -1,21 +1,9 @@
-using FluentValidation;
-using PermissionGraph.Application.Abstractions.Audit;
-using PermissionGraph.Application.Abstractions.Clock;
-using PermissionGraph.Application.Abstractions.Data;
-using PermissionGraph.Application.Abstractions.Memberships;
-using PermissionGraph.Application.Abstractions.Users;
-using PermissionGraph.Application.Common.Errors;
-using PermissionGraph.Application.Common.Validation;
-using PermissionGraph.Application.Features.Organizations;
-using PermissionGraph.Domain.Common;
-using static PermissionGraph.Application.Features.Memberships.MembershipHandlerHelpers;
-
-namespace PermissionGraph.Application.Features.Memberships;
+namespace PermissionGraph.Application.Features.Memberships.LeaveOrganization.Handlers;
 
 public sealed class LeaveOrganizationHandler(
     IValidator<LeaveOrganizationCommand> validator,
     AuthenticatedUserResolver authenticatedUserResolver,
-    OrganizationAccess organizationAccess,
+    OrganizationAccessHelper organizationAccess,
     IOrganizationMembershipRepository membershipRepository,
     IAuditWriter auditWriter,
     IApplicationTransaction transaction,

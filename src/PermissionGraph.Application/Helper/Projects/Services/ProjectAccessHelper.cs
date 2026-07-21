@@ -1,13 +1,7 @@
-using PermissionGraph.Application.Abstractions.Projects;
-using PermissionGraph.Application.Common.Errors;
-using PermissionGraph.Application.Features.Organizations;
-using PermissionGraph.Domain.Organizations;
-using PermissionGraph.Domain.Projects;
+namespace PermissionGraph.Application.Helper.Projects.Services;
 
-namespace PermissionGraph.Application.Features.Projects;
-
-public sealed class ProjectAccess(
-    OrganizationAccess organizationAccess,
+public sealed class ProjectAccessHelper(
+    OrganizationAccessHelper organizationAccess,
     IProjectRepository projectRepository)
 {
     public async Task<Organization> RequireVisibleActiveOrganizationAsync(

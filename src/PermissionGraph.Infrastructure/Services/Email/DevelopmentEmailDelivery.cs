@@ -1,6 +1,4 @@
-using PermissionGraph.Application.Abstractions.Email;
-
-namespace PermissionGraph.Infrastructure.Email;
+namespace PermissionGraph.Infrastructure.Services.Email;
 
 internal sealed class DevelopmentEmailDelivery : IEmailDelivery
 {

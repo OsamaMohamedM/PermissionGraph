@@ -1,4 +1,4 @@
-namespace PermissionGraph.Application.Features.Permissions;
+namespace PermissionGraph.Application.Features.Permissions.UpdateCustomPermission.Models;
 
 public sealed record UpdateCustomPermissionCommand(
     Guid OrganizationId,

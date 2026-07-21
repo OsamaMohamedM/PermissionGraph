@@ -1,7 +1,4 @@
-using FluentValidation;
-using PermissionGraph.Domain.Organizations;
-
-namespace PermissionGraph.Application.Features.Organizations;
+namespace PermissionGraph.Application.Features.Organizations.UpdateOrganization.Validators;
 
 public sealed class UpdateOrganizationCommandValidator : AbstractValidator<UpdateOrganizationCommand>
 {

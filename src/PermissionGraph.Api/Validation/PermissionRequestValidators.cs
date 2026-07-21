@@ -1,8 +1,3 @@
-using FluentValidation;
-using PermissionGraph.Api.Endpoints;
-using PermissionGraph.Contracts.Permissions;
-using PermissionGraph.Domain.Permissions;
-
 namespace PermissionGraph.Api.Validation;
 
 public sealed class CreateCustomPermissionRequestValidator : AbstractValidator<CreateCustomPermissionRequest>

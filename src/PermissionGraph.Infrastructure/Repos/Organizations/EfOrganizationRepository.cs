@@ -1,11 +1,4 @@
-using Microsoft.EntityFrameworkCore;
-using PermissionGraph.Application.Abstractions.Organizations;
-using PermissionGraph.Application.Common.Pagination;
-using PermissionGraph.Domain.Memberships;
-using PermissionGraph.Domain.Organizations;
-using PermissionGraph.Infrastructure.Data;
-
-namespace PermissionGraph.Infrastructure.Organizations;
+namespace PermissionGraph.Infrastructure.Repos.Organizations;
 
 internal sealed class EfOrganizationRepository(PermissionGraphDbContext dbContext) : IOrganizationRepository
 {

@@ -1,15 +1,9 @@
-using FluentValidation;
-using PermissionGraph.Application.Abstractions.Projects;
-using PermissionGraph.Application.Abstractions.Users;
-using PermissionGraph.Application.Common.Pagination;
-using PermissionGraph.Application.Common.Validation;
-
-namespace PermissionGraph.Application.Features.Projects;
+namespace PermissionGraph.Application.Features.Projects.ListProjects.Handlers;
 
 public sealed class ListProjectsHandler(
     IValidator<ListProjectsQuery> validator,
     AuthenticatedUserResolver authenticatedUserResolver,
-    ProjectAccess projectAccess,
+    ProjectAccessHelper projectAccess,
     IProjectRepository projectRepository)
 {
     public async Task<PageResult<ProjectResult>> HandleAsync(ListProjectsQuery query, CancellationToken cancellationToken)

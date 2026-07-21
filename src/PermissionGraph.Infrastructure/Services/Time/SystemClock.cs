@@ -1,6 +1,4 @@
-using PermissionGraph.Application.Abstractions.Clock;
-
-namespace PermissionGraph.Infrastructure.Time;
+namespace PermissionGraph.Infrastructure.Services.Time;
 
 public sealed class SystemClock : IClock
 {

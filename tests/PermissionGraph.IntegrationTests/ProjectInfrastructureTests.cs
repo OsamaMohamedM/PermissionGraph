@@ -1,24 +1,3 @@
-using FluentAssertions;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using PermissionGraph.Application.Abstractions.Audit;
-using PermissionGraph.Application.Abstractions.Projects;
-using PermissionGraph.Application.Abstractions.Users;
-using PermissionGraph.Application.Common.Errors;
-using PermissionGraph.Application.DependencyInjection;
-using PermissionGraph.Application.Features.Organizations;
-using PermissionGraph.Application.Features.Projects;
-using PermissionGraph.Domain.Projects;
-using PermissionGraph.Infrastructure.Authentication;
-using PermissionGraph.Infrastructure.AuthorizationSeed;
-using PermissionGraph.Infrastructure.Data;
-using PermissionGraph.Infrastructure.DependencyInjection;
-using PermissionGraph.Infrastructure.Projects;
-using Testcontainers.PostgreSql;
-using Testcontainers.Redis;
-
 namespace PermissionGraph.IntegrationTests;
 
 public sealed class ProjectInfrastructureTests : IAsyncLifetime
@@ -284,7 +263,7 @@ public sealed class ProjectInfrastructureTests : IAsyncLifetime
         using var scope = provider.CreateScope();
         var organization = await CreateOrganizationAsync(scope, "Seed Project Org");
         var dbContext = scope.ServiceProvider.GetRequiredService<PermissionGraphDbContext>();
-        var seed = scope.ServiceProvider.GetRequiredService<PermissionGraph.Application.Abstractions.Organizations.IOrganizationSeedService>();
+        var seed = scope.ServiceProvider.GetRequiredService<PermissionGraph.Application.Abstractions.Services.Organizations.IOrganizationSeedService>();
 
         await seed.SeedDefaultAuthorizationAsync(
             await dbContext.Organizations.SingleAsync(item => item.Id == organization.Id),
@@ -414,7 +393,7 @@ public sealed class ProjectInfrastructureTests : IAsyncLifetime
         return user;
     }
 
-    private static async Task<PermissionGraph.Application.Features.Organizations.OrganizationResult> CreateOrganizationAsync(
+    private static async Task<PermissionGraph.Application.Helper.Organizations.Models.OrganizationResult> CreateOrganizationAsync(
         IServiceScope scope,
         string name)
     {

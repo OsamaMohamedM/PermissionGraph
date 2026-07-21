@@ -1,21 +1,9 @@
-using FluentValidation;
-using PermissionGraph.Application.Abstractions.Audit;
-using PermissionGraph.Application.Abstractions.Clock;
-using PermissionGraph.Application.Abstractions.Data;
-using PermissionGraph.Application.Abstractions.Memberships;
-using PermissionGraph.Application.Abstractions.Security;
-using PermissionGraph.Application.Abstractions.Users;
-using PermissionGraph.Application.Common.Errors;
-using PermissionGraph.Application.Common.Validation;
-using PermissionGraph.Domain.Common;
-using PermissionGraph.Domain.Memberships;
-
-namespace PermissionGraph.Application.Features.Organizations;
+namespace PermissionGraph.Application.Features.Organizations.TransferOwnership.Handlers;
 
 public sealed class TransferOwnershipHandler(
     IValidator<TransferOwnershipCommand> validator,
     AuthenticatedUserResolver authenticatedUserResolver,
-    OrganizationAccess organizationAccess,
+    OrganizationAccessHelper organizationAccess,
     IOrganizationMembershipRepository membershipRepository,
     IUserAccountLookup userAccountLookup,
     IRecentAuthenticationVerifier recentAuthenticationVerifier,

@@ -1,10 +1,4 @@
-using Microsoft.EntityFrameworkCore;
-using PermissionGraph.Application.Abstractions.Permissions;
-using PermissionGraph.Application.Common.Pagination;
-using PermissionGraph.Domain.Permissions;
-using PermissionGraph.Infrastructure.Data;
-
-namespace PermissionGraph.Infrastructure.Permissions;
+namespace PermissionGraph.Infrastructure.Repos.Permissions;
 
 internal sealed class EfPermissionDefinitionRepository(PermissionGraphDbContext dbContext) : IPermissionDefinitionRepository
 {

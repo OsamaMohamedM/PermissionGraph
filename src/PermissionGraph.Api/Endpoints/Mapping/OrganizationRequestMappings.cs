@@ -1,8 +1,3 @@
-using PermissionGraph.Application.Features.Memberships;
-using PermissionGraph.Application.Features.Organizations;
-using PermissionGraph.Contracts.OrganizationMembers;
-using PermissionGraph.Contracts.Organizations;
-
 namespace PermissionGraph.Api.Endpoints.Mapping;
 
 internal static class OrganizationRequestMappings

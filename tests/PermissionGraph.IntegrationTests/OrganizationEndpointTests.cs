@@ -1,21 +1,3 @@
-using System.Net;
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
-using System.Text.Json;
-using FluentAssertions;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using PermissionGraph.Application.Abstractions.Data;
-using PermissionGraph.Application.Common.Errors;
-using PermissionGraph.Contracts.Authentication;
-using PermissionGraph.Contracts.OrganizationMembers;
-using PermissionGraph.Contracts.Organizations;
-using PermissionGraph.Domain.Memberships;
-using PermissionGraph.Domain.Organizations;
-using PermissionGraph.Infrastructure.Data;
-using Testcontainers.PostgreSql;
-using Testcontainers.Redis;
-
 namespace PermissionGraph.IntegrationTests;
 
 public sealed class OrganizationEndpointTests : IAsyncLifetime
@@ -116,7 +98,7 @@ public sealed class OrganizationEndpointTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task CrossTenantOrganizationAccess_ReturnsSafeNotFound()
+    public async Task CrossTenantOrganizationAccessHelper_ReturnsSafeNotFound()
     {
         using var factory = await CreateMigratedFactoryAsync();
         using var client = factory.CreateClient();

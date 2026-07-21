@@ -1,6 +1,3 @@
-using FluentValidation;
-using PermissionGraph.Api.Validation;
-
 namespace PermissionGraph.Api.Configuration;
 
 public static class ApiValidationExtensions

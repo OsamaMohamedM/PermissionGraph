@@ -1,10 +1,4 @@
-using FluentValidation;
-using PermissionGraph.Application.Abstractions.Organizations;
-using PermissionGraph.Application.Abstractions.Users;
-using PermissionGraph.Application.Common.Pagination;
-using PermissionGraph.Application.Common.Validation;
-
-namespace PermissionGraph.Application.Features.Organizations;
+namespace PermissionGraph.Application.Features.Organizations.ListOrganizations.Handlers;
 
 public sealed class ListOrganizationsHandler(
     IValidator<ListOrganizationsQuery> validator,

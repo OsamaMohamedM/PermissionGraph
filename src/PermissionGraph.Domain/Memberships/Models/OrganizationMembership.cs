@@ -1,6 +1,4 @@
-using PermissionGraph.Domain.Common;
-
-namespace PermissionGraph.Domain.Memberships;
+namespace PermissionGraph.Domain.Memberships.Models;
 
 public sealed class OrganizationMembership
 {

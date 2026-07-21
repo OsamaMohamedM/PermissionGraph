@@ -1,7 +1,3 @@
-using PermissionGraph.Application.Features.Permissions;
-using PermissionGraph.Contracts.Permissions;
-using PermissionGraph.Domain.Permissions;
-
 namespace PermissionGraph.Api.Endpoints.Mapping;
 
 internal static class PermissionRequestMappings

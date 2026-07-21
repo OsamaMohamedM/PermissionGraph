@@ -1,10 +1,6 @@
-using PermissionGraph.Application.Abstractions.Memberships;
-using PermissionGraph.Application.Features.Organizations;
-using PermissionGraph.Domain.Memberships;
+namespace PermissionGraph.Application.Helper.Memberships.Services;
 
-namespace PermissionGraph.Application.Features.Memberships;
-
-internal static class MembershipHandlerHelpers
+internal static class MembershipHandlerHelper
 {
     public static async Task<OrganizationMembership> GetTargetMembershipAsync(
         IOrganizationMembershipRepository membershipRepository,
@@ -13,7 +9,7 @@ internal static class MembershipHandlerHelpers
         CancellationToken cancellationToken)
     {
         var membership = await membershipRepository.GetByOrganizationAndUserAsync(organizationId, userId, cancellationToken);
-        return membership ?? throw OrganizationAccess.NotFound();
+        return membership ?? throw OrganizationAccessHelper.NotFound();
     }
 
     public static async Task<OrganizationMembership> GetTargetMembershipIncludingRemovedAsync(
@@ -23,6 +19,6 @@ internal static class MembershipHandlerHelpers
         CancellationToken cancellationToken)
     {
         var membership = await membershipRepository.GetByOrganizationAndUserIncludingRemovedAsync(organizationId, userId, cancellationToken);
-        return membership ?? throw OrganizationAccess.NotFound();
+        return membership ?? throw OrganizationAccessHelper.NotFound();
     }
 }

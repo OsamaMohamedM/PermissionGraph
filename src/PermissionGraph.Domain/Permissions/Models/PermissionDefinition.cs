@@ -1,7 +1,4 @@
-using System.Text.RegularExpressions;
-using PermissionGraph.Domain.Common;
-
-namespace PermissionGraph.Domain.Permissions;
+namespace PermissionGraph.Domain.Permissions.Models;
 
 public sealed partial class PermissionDefinition
 {

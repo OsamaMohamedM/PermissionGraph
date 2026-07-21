@@ -1,8 +1,6 @@
-using System.Security.Cryptography;
+namespace PermissionGraph.Infrastructure.Helper.Authentication;
 
-namespace PermissionGraph.Infrastructure.Authentication;
-
-internal static class RefreshTokenGenerator
+internal static class RefreshTokenGeneratorHelper
 {
     public static string Create()
     {

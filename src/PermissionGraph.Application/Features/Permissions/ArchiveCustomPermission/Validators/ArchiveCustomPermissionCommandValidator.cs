@@ -1,6 +1,4 @@
-using FluentValidation;
-
-namespace PermissionGraph.Application.Features.Permissions;
+namespace PermissionGraph.Application.Features.Permissions.ArchiveCustomPermission.Validators;
 
 public sealed class ArchiveCustomPermissionCommandValidator : AbstractValidator<ArchiveCustomPermissionCommand>
 {

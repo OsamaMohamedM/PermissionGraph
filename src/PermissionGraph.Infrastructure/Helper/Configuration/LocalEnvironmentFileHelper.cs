@@ -1,6 +1,6 @@
-namespace PermissionGraph.Infrastructure.Configuration;
+namespace PermissionGraph.Infrastructure.Helper.Configuration;
 
-public static class LocalEnvironmentFile
+public static class LocalEnvironmentFileHelper
 {
     public static void LoadIfPresent()
     {

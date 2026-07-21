@@ -1,4 +1,4 @@
-namespace PermissionGraph.Application.Abstractions.Email;
+namespace PermissionGraph.Application.Abstractions.Services.Email;
 
 public interface IEmailDelivery
 {

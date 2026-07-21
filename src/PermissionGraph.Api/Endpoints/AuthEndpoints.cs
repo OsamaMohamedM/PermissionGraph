@@ -1,11 +1,3 @@
-using PermissionGraph.Api.Validation;
-using PermissionGraph.Api.Endpoints.Mapping;
-using PermissionGraph.Application.Abstractions.Authentication;
-using PermissionGraph.Application.Authentication;
-using PermissionGraph.Application.Common.Errors;
-using PermissionGraph.Contracts.Authentication;
-using System.Security.Claims;
-
 namespace PermissionGraph.Api.Endpoints;
 
 public static class AuthEndpoints

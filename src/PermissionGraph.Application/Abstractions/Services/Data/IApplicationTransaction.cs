@@ -1,4 +1,4 @@
-namespace PermissionGraph.Application.Abstractions.Data;
+namespace PermissionGraph.Application.Abstractions.Services.Data;
 
 public interface IApplicationTransaction
 {

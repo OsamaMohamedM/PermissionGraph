@@ -1,23 +1,3 @@
-using FluentAssertions;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using PermissionGraph.Application.Abstractions.Audit;
-using PermissionGraph.Application.Abstractions.Organizations;
-using PermissionGraph.Application.Abstractions.Users;
-using PermissionGraph.Application.Common.Errors;
-using PermissionGraph.Application.DependencyInjection;
-using PermissionGraph.Application.Features.Memberships;
-using PermissionGraph.Application.Features.Organizations;
-using PermissionGraph.Domain.Memberships;
-using PermissionGraph.Domain.Organizations;
-using PermissionGraph.Infrastructure.Authentication;
-using PermissionGraph.Infrastructure.Data;
-using PermissionGraph.Infrastructure.DependencyInjection;
-using Testcontainers.PostgreSql;
-using Testcontainers.Redis;
-
 namespace PermissionGraph.IntegrationTests;
 
 public sealed class OrganizationInfrastructureTests : IAsyncLifetime
@@ -244,7 +224,7 @@ public sealed class OrganizationInfrastructureTests : IAsyncLifetime
         var inactive = await CreateUserAsync(provider, "recent-inactive@example.test", isActive: false);
 
         using var scope = provider.CreateScope();
-        var verifier = scope.ServiceProvider.GetRequiredService<PermissionGraph.Application.Abstractions.Security.IRecentAuthenticationVerifier>();
+        var verifier = scope.ServiceProvider.GetRequiredService<PermissionGraph.Application.Abstractions.Services.Security.IRecentAuthenticationVerifier>();
 
         (await verifier.HasRecentAuthenticationAsync(user.Id, "ValidPassword123!", CancellationToken.None)).Should().BeTrue();
         (await verifier.HasRecentAuthenticationAsync(user.Id, "WrongPassword123!", CancellationToken.None)).Should().BeFalse();

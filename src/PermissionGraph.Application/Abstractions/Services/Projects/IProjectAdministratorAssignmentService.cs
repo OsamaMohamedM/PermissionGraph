@@ -1,6 +1,4 @@
-using PermissionGraph.Domain.Projects;
-
-namespace PermissionGraph.Application.Abstractions.Projects;
+namespace PermissionGraph.Application.Abstractions.Services.Projects;
 
 public interface IProjectAdministratorAssignmentService
 {

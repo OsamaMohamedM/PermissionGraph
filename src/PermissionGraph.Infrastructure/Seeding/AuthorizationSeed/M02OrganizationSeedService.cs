@@ -1,12 +1,4 @@
-using Microsoft.EntityFrameworkCore;
-using PermissionGraph.Application.Abstractions.Organizations;
-using PermissionGraph.Domain.Organizations;
-using PermissionGraph.Domain.Permissions;
-using PermissionGraph.Infrastructure.Data;
-using System.Security.Cryptography;
-using System.Text;
-
-namespace PermissionGraph.Infrastructure.AuthorizationSeed;
+namespace PermissionGraph.Infrastructure.Seeding.AuthorizationSeed;
 
 internal sealed class M02OrganizationSeedService(PermissionGraphDbContext dbContext) : IOrganizationSeedService
 {
