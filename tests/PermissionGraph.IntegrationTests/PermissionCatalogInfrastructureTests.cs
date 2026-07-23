@@ -353,7 +353,7 @@ public sealed class PermissionCatalogInfrastructureTests : IAsyncLifetime
             join permission in dbContext.PermissionDefinitions on rolePermission.PermissionId equals permission.Id
             where role.OrganizationId == organizationId &&
                   role.NormalizedName == normalizedRoleName &&
-                  role.ScopeType == scopeType
+                  role.ScopeType == Enum.Parse<RoleScopeType>(scopeType)
             select permission.Key)
             .ToListAsync();
     }

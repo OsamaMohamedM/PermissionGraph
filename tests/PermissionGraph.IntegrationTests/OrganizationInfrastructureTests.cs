@@ -43,7 +43,7 @@ public sealed class OrganizationInfrastructureTests : IAsyncLifetime
         (await dbContext.OrganizationMemberships.CountAsync()).Should().Be(1);
         (await dbContext.OrganizationMemberships.SingleAsync()).UserId.Should().Be(owner.Id);
         (await dbContext.PermissionDefinitions.CountAsync()).Should().BeGreaterThan(0);
-        (await dbContext.Roles.CountAsync(role => role.OrganizationId == result.Id)).Should().Be(3);
+        (await dbContext.Roles.CountAsync(role => role.OrganizationId == result.Id)).Should().Be(5);
         (await dbContext.RolePermissions.CountAsync()).Should().BeGreaterThan(0);
         (await dbContext.AuditLogs.CountAsync(audit => audit.Action == "organization.created")).Should().Be(1);
     }

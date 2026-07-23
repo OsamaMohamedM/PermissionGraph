@@ -284,7 +284,7 @@ public sealed class ProjectInfrastructureTests : IAsyncLifetime
         var projectAdministratorRole = await dbContext.Roles.SingleAsync(role =>
             role.OrganizationId == organization.Id &&
             role.NormalizedName == "PROJECT ADMINISTRATOR" &&
-            role.ScopeType == "Project");
+            role.ScopeType == RoleScopeType.Project);
         var projectAdministratorPermissions = await (
             from rolePermission in dbContext.RolePermissions
             join permission in dbContext.PermissionDefinitions on rolePermission.PermissionId equals permission.Id

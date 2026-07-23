@@ -32,7 +32,7 @@ internal sealed class ProjectAdministratorAssignmentConfiguration : IEntityTypeC
             .HasPrincipalKey(project => new { project.Id, project.OrganizationId })
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne<RoleRecord>()
+        builder.HasOne<Role>()
             .WithMany()
             .HasForeignKey(assignment => new { assignment.RoleId, assignment.OrganizationId })
             .HasPrincipalKey(role => new { role.Id, role.OrganizationId })

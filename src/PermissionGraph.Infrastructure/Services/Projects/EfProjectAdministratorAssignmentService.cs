@@ -17,8 +17,8 @@ internal sealed class EfProjectAdministratorAssignmentService(
             item =>
                 item.OrganizationId == project.OrganizationId &&
                 item.NormalizedName == ProjectAdministratorRoleName &&
-                item.ScopeType == "Project" &&
-                item.RoleType == "System" &&
+                item.ScopeType == RoleScopeType.Project &&
+                item.RoleType == RoleType.System &&
                 item.IsActive,
             cancellationToken);
 
