@@ -48,6 +48,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IOrganizationRepository, EfOrganizationRepository>();
         services.AddScoped<IOrganizationMembershipRepository, EfOrganizationMembershipRepository>();
         services.AddScoped<IPermissionDefinitionRepository, EfPermissionDefinitionRepository>();
+        services.AddScoped<IRoleRepository, EfRoleRepository>();
         services.AddScoped<IOrganizationPolicyVersionUpdater, EfOrganizationPolicyVersionUpdater>();
         services.AddScoped<IProjectRepository, EfProjectRepository>();
         services.AddScoped<IProjectAdministratorAssignmentService, EfProjectAdministratorAssignmentService>();

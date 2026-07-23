@@ -17,9 +17,9 @@ public sealed class PermissionGraphDbContext(DbContextOptions<PermissionGraphDbC
 
     public DbSet<PermissionDefinition> PermissionDefinitions => Set<PermissionDefinition>();
 
-    public DbSet<RoleRecord> Roles => Set<RoleRecord>();
+    public DbSet<Role> Roles => Set<Role>();
 
-    public DbSet<RolePermissionRecord> RolePermissions => Set<RolePermissionRecord>();
+    public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
@@ -130,7 +130,7 @@ public sealed class PermissionGraphDbContext(DbContextOptions<PermissionGraphDbC
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
-        builder.Entity<RoleRecord>(entity =>
+        builder.Entity<Role>(entity =>
         {
             entity.HasOne<Organization>()
                 .WithMany()
@@ -140,12 +140,12 @@ public sealed class PermissionGraphDbContext(DbContextOptions<PermissionGraphDbC
             entity.HasAlternateKey(role => new { role.Id, role.OrganizationId });
         });
 
-        builder.Entity<RolePermissionRecord>(entity =>
+        builder.Entity<RolePermission>(entity =>
         {
-            entity.HasOne<RoleRecord>()
-                .WithMany()
+            entity.HasOne<Role>()
+                .WithMany(role => role.Permissions)
                 .HasForeignKey(rolePermission => rolePermission.RoleId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.ClientCascade);
 
             entity.HasOne<PermissionDefinition>()
                 .WithMany()
@@ -205,6 +205,19 @@ public sealed class PermissionGraphDbContext(DbContextOptions<PermissionGraphDbC
             {
                 var original = entry.Property(permission => permission.Version).OriginalValue;
                 entry.Property(permission => permission.Version).CurrentValue = original + 1;
+            }
+        }
+
+        foreach (var entry in ChangeTracker.Entries<Role>())
+        {
+            if (entry.State == EntityState.Added)
+            {
+                entry.Property(role => role.Version).CurrentValue = 1;
+            }
+            else if (entry.State == EntityState.Modified)
+            {
+                var original = entry.Property(role => role.Version).OriginalValue;
+                entry.Property(role => role.Version).CurrentValue = original + 1;
             }
         }
     }
