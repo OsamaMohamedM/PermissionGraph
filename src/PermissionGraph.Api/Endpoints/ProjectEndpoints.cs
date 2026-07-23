@@ -8,6 +8,7 @@ public static class ProjectEndpoints
             .RequireAuthorization();
 
         projects.MapPost("/", CreateAsync)
+            .RequirePermission("pg.projects.create")
             .RequireRateLimiting("org-mutations")
             .AddEndpointFilter<ValidationFilter<CreateProjectRequest>>();
 
@@ -17,10 +18,12 @@ public static class ProjectEndpoints
         projects.MapGet("/{projectId:guid}", GetAsync);
 
         projects.MapPatch("/{projectId:guid}", UpdateAsync)
+            .RequirePermission("pg.projects.update")
             .RequireRateLimiting("org-mutations")
             .AddEndpointFilter<ValidationFilter<UpdateProjectRequest>>();
 
         projects.MapPost("/{projectId:guid}/archive", ArchiveAsync)
+            .RequirePermission("pg.projects.archive")
             .RequireRateLimiting("org-mutations");
 
         return app;

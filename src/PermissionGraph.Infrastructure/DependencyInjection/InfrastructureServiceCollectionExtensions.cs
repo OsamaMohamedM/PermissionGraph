@@ -52,6 +52,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IOrganizationPolicyVersionUpdater, EfOrganizationPolicyVersionUpdater>();
         services.AddScoped<IProjectRepository, EfProjectRepository>();
         services.AddScoped<IProjectAdministratorAssignmentService, EfProjectAdministratorAssignmentService>();
+        services.AddScoped<IAuthorizationReadService, EfAuthorizationReadService>();
         services.AddScoped<IUserAccountLookup, IdentityUserAccountLookup>();
         services.AddScoped<IRecentAuthenticationVerifier, IdentityRecentAuthenticationVerifier>();
         services.AddScoped<IApplicationTransaction, EfApplicationTransaction>();

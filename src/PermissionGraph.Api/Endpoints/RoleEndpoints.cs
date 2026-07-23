@@ -13,6 +13,7 @@ public static class RoleEndpoints
             .AddEndpointFilter<ValidationFilter<ListRolesRequest>>();
 
         roles.MapPost("/", CreateAsync)
+            .RequirePermission("pg.roles.create")
             .RequireRateLimiting("org-mutations")
             .AddEndpointFilter<ValidationFilter<CreateCustomRoleRequest>>();
 
@@ -20,20 +21,25 @@ public static class RoleEndpoints
             .WithName(GetRoleEndpointName);
 
         roles.MapPatch("/{roleId:guid}", UpdateAsync)
+            .RequirePermission("pg.roles.update")
             .RequireRateLimiting("org-mutations")
             .AddEndpointFilter<ValidationFilter<UpdateCustomRoleRequest>>();
 
         roles.MapPost("/{roleId:guid}/clone", CloneAsync)
+            .RequirePermission("pg.roles.create")
             .RequireRateLimiting("org-mutations")
             .AddEndpointFilter<ValidationFilter<CloneRoleRequest>>();
 
         roles.MapPost("/{roleId:guid}/archive", ArchiveAsync)
+            .RequirePermission("pg.roles.archive")
             .RequireRateLimiting("org-mutations");
 
         roles.MapPost("/{roleId:guid}/activate", ActivateAsync)
+            .RequirePermission("pg.roles.archive")
             .RequireRateLimiting("org-mutations");
 
         roles.MapPut("/{roleId:guid}/permissions", ReplacePermissionsAsync)
+            .RequirePermission("pg.roles.update")
             .RequireRateLimiting("org-mutations")
             .AddEndpointFilter<ValidationFilter<ReplaceRolePermissionsRequest>>();
 

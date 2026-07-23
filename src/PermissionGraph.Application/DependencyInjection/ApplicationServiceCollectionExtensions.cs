@@ -10,6 +10,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<ProjectAccessHelper>();
         services.AddScoped<PermissionCatalogAccessHelper>();
         services.AddScoped<RoleCatalogAccessHelper>();
+        services.AddScoped<IAuthorizationDecisionService, AuthorizationDecisionService>();
 
         services.AddScoped<CreateOrganizationHandler>();
         services.AddScoped<GetOrganizationHandler>();

@@ -13,6 +13,7 @@ public static class PermissionEndpoints
             .AddEndpointFilter<ValidationFilter<ListPermissionsRequest>>();
 
         permissions.MapPost("/", CreateAsync)
+            .RequirePermission("pg.permissions.create")
             .RequireRateLimiting("org-mutations")
             .AddEndpointFilter<ValidationFilter<CreateCustomPermissionRequest>>();
 
@@ -20,13 +21,16 @@ public static class PermissionEndpoints
             .WithName(GetPermissionEndpointName);
 
         permissions.MapPatch("/{permissionId:guid}", UpdateAsync)
+            .RequirePermission("pg.permissions.update")
             .RequireRateLimiting("org-mutations")
             .AddEndpointFilter<ValidationFilter<UpdateCustomPermissionRequest>>();
 
         permissions.MapPost("/{permissionId:guid}/archive", ArchiveAsync)
+            .RequirePermission("pg.permissions.archive")
             .RequireRateLimiting("org-mutations");
 
         permissions.MapPost("/{permissionId:guid}/activate", ActivateAsync)
+            .RequirePermission("pg.permissions.archive")
             .RequireRateLimiting("org-mutations");
 
         return app;

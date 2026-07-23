@@ -19,6 +19,7 @@ global using PermissionGraph.Application.Abstractions.Repositories.Organizations
 global using PermissionGraph.Application.Abstractions.Repositories.Permissions;
 global using PermissionGraph.Application.Abstractions.Repositories.Projects;
 global using PermissionGraph.Application.Abstractions.Repositories.Roles;
+global using PermissionGraph.Application.Abstractions.Services.Authorization;
 global using PermissionGraph.Application.Abstractions.Services.Audit;
 global using PermissionGraph.Application.Abstractions.Services.Authentication;
 global using PermissionGraph.Application.Abstractions.Services.Clock;
@@ -70,6 +71,7 @@ global using PermissionGraph.Infrastructure.Repos.Projects;
 global using PermissionGraph.Infrastructure.Repos.Roles;
 global using PermissionGraph.Infrastructure.Seeding.AuthorizationSeed;
 global using PermissionGraph.Infrastructure.Services.Audit;
+global using PermissionGraph.Infrastructure.Services.Authorization;
 global using PermissionGraph.Infrastructure.Services.Authentication;
 global using PermissionGraph.Infrastructure.Services.Data;
 global using PermissionGraph.Infrastructure.Services.Email;

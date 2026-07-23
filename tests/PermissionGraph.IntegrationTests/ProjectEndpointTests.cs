@@ -189,8 +189,8 @@ public sealed class ProjectEndpointTests : IAsyncLifetime
         var updateArchived = await client.PatchAsJsonAsync(
             $"/api/v1/organizations/{organization.Id}/projects/{project.Id}",
             new UpdateProjectRequest("Renamed Again", null));
-        updateArchived.StatusCode.Should().Be(HttpStatusCode.Conflict);
-        await AssertProblemAsync(updateArchived, "Archived project cannot be updated.");
+        updateArchived.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        await AssertProblemAsync(updateArchived, "Access is forbidden.");
     }
 
     [Fact]

@@ -250,7 +250,8 @@ public sealed class PermissionEndpointTests : IAsyncLifetime
         var response = await client.PostAsJsonAsync(
             $"/api/v1/organizations/{organization.Id}/permissions",
             CreateRequest("billing.invoice.view"));
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        await AssertProblemAsync(response, "Access is forbidden.");
     }
 
     [Fact]

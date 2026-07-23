@@ -129,7 +129,7 @@ public sealed class OrganizationEndpointTests : IAsyncLifetime
         await AuthorizeAsync(client, member.Email);
         var forbidden = await client.PatchAsJsonAsync($"/api/v1/organizations/{organization.Id}", new UpdateOrganizationRequest("Member Rename", null));
         forbidden.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        await AssertProblemAsync(forbidden, "Only the organization owner may perform this operation.");
+        await AssertProblemAsync(forbidden, "Access is forbidden.");
 
         await AuthorizeAsync(client, "owner-update@example.test");
         var update = await client.PatchAsJsonAsync($"/api/v1/organizations/{organization.Id}", new UpdateOrganizationRequest("Renamed Org", "Updated"));
@@ -142,12 +142,12 @@ public sealed class OrganizationEndpointTests : IAsyncLifetime
         await AssertNoContentBodyAsync(archive);
 
         var updateArchived = await client.PatchAsJsonAsync($"/api/v1/organizations/{organization.Id}", new UpdateOrganizationRequest("Archived Rename", null));
-        updateArchived.StatusCode.Should().Be(HttpStatusCode.NotFound);
-        await AssertProblemAsync(updateArchived, "Organization could not be found.");
+        updateArchived.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        await AssertProblemAsync(updateArchived, "Access is forbidden.");
 
         var addToArchived = await client.PostAsJsonAsync($"/api/v1/organizations/{organization.Id}/members", new AddOrganizationMemberRequest(member.Email));
-        addToArchived.StatusCode.Should().Be(HttpStatusCode.NotFound);
-        await AssertProblemAsync(addToArchived, "Organization could not be found.");
+        addToArchived.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        await AssertProblemAsync(addToArchived, "Access is forbidden.");
     }
 
     [Fact]

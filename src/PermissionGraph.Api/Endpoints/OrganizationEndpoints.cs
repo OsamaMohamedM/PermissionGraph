@@ -17,14 +17,17 @@ public static class OrganizationEndpoints
         organizations.MapGet("/{organizationId:guid}", GetAsync);
 
         organizations.MapPatch("/{organizationId:guid}", UpdateAsync)
+            .RequirePermission("pg.organizations.update")
             .RequireRateLimiting("org-mutations")
             .AddEndpointFilter<ValidationFilter<UpdateOrganizationRequest>>();
 
         organizations.MapPost("/{organizationId:guid}/archive", ArchiveAsync)
+            .RequirePermission("pg.organizations.archive")
             .RequireRateLimiting("org-mutations")
             .AddEndpointFilter<ValidationFilter<ArchiveOrganizationRequest>>();
 
         organizations.MapPost("/{organizationId:guid}/transfer-ownership", TransferOwnershipAsync)
+            .RequirePermission("pg.organizations.transfer_ownership")
             .RequireRateLimiting("org-transfer-ownership")
             .AddEndpointFilter<ValidationFilter<TransferOwnershipRequest>>();
 

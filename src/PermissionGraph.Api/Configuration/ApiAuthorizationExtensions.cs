@@ -6,6 +6,8 @@ public static class ApiAuthorizationExtensions
     {
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUser, HttpContextCurrentUser>();
+        services.AddSingleton<IAuthorizationPolicyProvider, DynamicPermissionPolicyProvider>();
+        services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
         services.AddAuthorization(options =>
         {

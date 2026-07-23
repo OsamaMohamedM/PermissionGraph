@@ -8,6 +8,7 @@ public static class OrganizationMemberEndpoints
             .RequireAuthorization();
 
         members.MapPost("/members", AddAsync)
+            .RequirePermission("pg.members.manage")
             .RequireRateLimiting("org-member-add")
             .AddEndpointFilter<ValidationFilter<AddOrganizationMemberRequest>>();
 
@@ -17,12 +18,15 @@ public static class OrganizationMemberEndpoints
         members.MapGet("/members/{userId:guid}", GetAsync);
 
         members.MapPost("/members/{userId:guid}/suspend", SuspendAsync)
+            .RequirePermission("pg.members.suspend")
             .RequireRateLimiting("org-member-mutations");
 
         members.MapPost("/members/{userId:guid}/reactivate", ReactivateAsync)
+            .RequirePermission("pg.members.manage")
             .RequireRateLimiting("org-member-mutations");
 
         members.MapDelete("/members/{userId:guid}", RemoveAsync)
+            .RequirePermission("pg.members.remove")
             .RequireRateLimiting("org-member-mutations");
 
         members.MapPost("/leave", LeaveAsync)

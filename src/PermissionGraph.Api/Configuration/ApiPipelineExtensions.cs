@@ -38,6 +38,7 @@ public static class ApiPipelineExtensions
         app.MapProjectEndpoints();
         app.MapPermissionEndpoints();
         app.MapRoleEndpoints();
+        app.MapAuthorizationEndpoints();
 
         return app;
     }
