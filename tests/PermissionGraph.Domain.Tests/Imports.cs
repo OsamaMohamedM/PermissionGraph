@@ -8,3 +8,5 @@ global using PermissionGraph.Domain.Permissions.Enums;
 global using PermissionGraph.Domain.Permissions.Models;
 global using PermissionGraph.Domain.Projects.Enums;
 global using PermissionGraph.Domain.Projects.Models;
+global using PermissionGraph.Domain.Roles.Enums;
+global using PermissionGraph.Domain.Roles.Models;
