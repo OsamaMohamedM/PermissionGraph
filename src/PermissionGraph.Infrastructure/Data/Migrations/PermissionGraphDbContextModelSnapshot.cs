@@ -333,6 +333,100 @@ namespace PermissionGraph.Infrastructure.Data.Migrations
                     b.ToTable("Projects", (string)null);
                 });
 
+            modelBuilder.Entity("PermissionGraph.Domain.RoleAssignments.Models.RoleAssignment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("ExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("GrantReason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("GrantedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RevokeReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTimeOffset?>("RevokedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("RevokedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ScopeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ScopeType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTimeOffset>("StartsAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GrantedByUserId");
+
+                    b.HasIndex("RevokedByUserId");
+
+                    b.HasIndex("ExpiresAtUtc", "Status");
+
+                    b.HasIndex("OrganizationId", "Status");
+
+                    b.HasIndex("RoleId", "OrganizationId");
+
+                    b.HasIndex("UserId", "RoleId", "ScopeType", "ScopeId")
+                        .IsUnique()
+                        .HasFilter("\"Status\" IN ('Scheduled', 'Active')");
+
+                    b.HasIndex("UserId", "StartsAtUtc", "ExpiresAtUtc", "Status");
+
+                    b.HasIndex("OrganizationId", "UserId", "ScopeType", "ScopeId", "Status");
+
+                    b.ToTable("RoleAssignments", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_RoleAssignments_ExpirationAfterStart", "\"ExpiresAtUtc\" IS NULL OR \"ExpiresAtUtc\" > \"StartsAtUtc\"");
+
+                            t.HasCheckConstraint("CK_RoleAssignments_OrganizationScopeId", "\"ScopeType\" <> 'Organization' OR \"ScopeId\" = \"OrganizationId\"");
+
+                            t.HasCheckConstraint("CK_RoleAssignments_ScopeType", "\"ScopeType\" IN ('Organization', 'Project')");
+
+                            t.HasCheckConstraint("CK_RoleAssignments_Status", "\"Status\" IN ('Scheduled', 'Active', 'Revoked', 'Expired')");
+                        });
+                });
+
             modelBuilder.Entity("PermissionGraph.Domain.Roles.Models.Role", b =>
                 {
                     b.Property<Guid>("Id")
@@ -750,6 +844,39 @@ namespace PermissionGraph.Infrastructure.Data.Migrations
                     b.HasOne("PermissionGraph.Domain.Organizations.Models.Organization", null)
                         .WithMany()
                         .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PermissionGraph.Domain.RoleAssignments.Models.RoleAssignment", b =>
+                {
+                    b.HasOne("PermissionGraph.Infrastructure.Authentication.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("GrantedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PermissionGraph.Domain.Organizations.Models.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PermissionGraph.Infrastructure.Authentication.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("RevokedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("PermissionGraph.Infrastructure.Authentication.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PermissionGraph.Domain.Roles.Models.Role", null)
+                        .WithMany()
+                        .HasForeignKey("RoleId", "OrganizationId")
+                        .HasPrincipalKey("Id", "OrganizationId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

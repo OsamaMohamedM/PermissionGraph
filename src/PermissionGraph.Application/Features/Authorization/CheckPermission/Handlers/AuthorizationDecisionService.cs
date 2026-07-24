@@ -6,6 +6,7 @@ public sealed class AuthorizationDecisionService(
     ICurrentUser currentUser,
     IUserAccountLookup userAccountLookup,
     IAuthorizationReadService authorizationReadService,
+    IAuthorizationDecisionCache authorizationDecisionCache,
     IClock clock) : IAuthorizationDecisionService
 {
     public async Task<AuthorizationDecision> CheckAsync(
@@ -34,7 +35,12 @@ public sealed class AuthorizationDecisionService(
             CreateReadRequest(query, subject.User!.UserId),
             cancellationToken);
 
-        return EvaluateReadModel(readModel, actor.User, subject.User, query.SubjectUserId);
+        return await EvaluateReadModelWithCacheAsync(
+            readModel,
+            actor.User,
+            subject.User,
+            query.SubjectUserId,
+            cancellationToken);
     }
 
     public async Task<BatchAuthorizationDecisionResult> BatchCheckAsync(
@@ -78,7 +84,12 @@ public sealed class AuthorizationDecisionService(
         foreach (var subject in subjects)
         {
             var decision = subject.Resolution.Decision
-                ?? EvaluateReadModel(remaining.Dequeue(), actor.User!, subject.Resolution.User!, subject.Item.SubjectUserId);
+                ?? await EvaluateReadModelWithCacheAsync(
+                    remaining.Dequeue(),
+                    actor.User!,
+                    subject.Resolution.User!,
+                    subject.Item.SubjectUserId,
+                    cancellationToken);
 
             decisions.Add(new BatchAuthorizationDecision(subject.Item.CorrelationId, subject.Index, decision));
         }
@@ -121,7 +132,37 @@ public sealed class AuthorizationDecisionService(
         return new UserResolution(subject, null);
     }
 
-    private AuthorizationDecision EvaluateReadModel(
+    private async Task<AuthorizationDecision> EvaluateReadModelWithCacheAsync(
+        AuthorizationEvaluationReadModel readModel,
+        UserAccount actor,
+        UserAccount subject,
+        Guid? requestedSubjectUserId,
+        CancellationToken cancellationToken)
+    {
+        var cacheKey = TryCreateCacheKey(readModel);
+        if (cacheKey is not null)
+        {
+            var cached = await authorizationDecisionCache.GetAsync(cacheKey, cancellationToken);
+            if (cached is not null)
+            {
+                return cached;
+            }
+        }
+
+        var outcome = EvaluateReadModel(readModel, actor, subject, requestedSubjectUserId);
+        if (cacheKey is not null)
+        {
+            var ttl = CalculateCacheTtl(outcome, clock.UtcNow);
+            if (ttl > TimeSpan.Zero)
+            {
+                await authorizationDecisionCache.SetAsync(cacheKey, outcome.Decision, ttl, cancellationToken);
+            }
+        }
+
+        return outcome.Decision;
+    }
+
+    private EvaluationOutcome EvaluateReadModel(
         AuthorizationEvaluationReadModel readModel,
         UserAccount actor,
         UserAccount subject,
@@ -130,13 +171,13 @@ public sealed class AuthorizationDecisionService(
         var organization = readModel.Organization;
         if (organization is null || !organization.IsActive)
         {
-            return Deny(AuthorizationReasonCode.DeniedOrganizationNotFoundOrInactive);
+            return Outcome(Deny(AuthorizationReasonCode.DeniedOrganizationNotFoundOrInactive));
         }
 
         var permission = readModel.Permission;
         if (!IsVisibleActivePermission(permission, readModel.Request.OrganizationId))
         {
-            return Deny(AuthorizationReasonCode.DeniedPermissionNotFoundOrInactive);
+            return Outcome(Deny(AuthorizationReasonCode.DeniedPermissionNotFoundOrInactive));
         }
 
         if (readModel.Request.ProjectId is not null)
@@ -144,46 +185,52 @@ public sealed class AuthorizationDecisionService(
             var project = readModel.Project;
             if (project is null || !project.IsActive)
             {
-                return Deny(AuthorizationReasonCode.DeniedProjectNotFoundOrInactive);
+                return Outcome(Deny(AuthorizationReasonCode.DeniedProjectNotFoundOrInactive));
             }
 
             if (project.OrganizationId != readModel.Request.OrganizationId)
             {
-                return Deny(AuthorizationReasonCode.DeniedProjectOutsideOrganization);
+                return Outcome(Deny(AuthorizationReasonCode.DeniedProjectOutsideOrganization));
             }
         }
 
         var scope = new AuthorizationScope(readModel.Request.OrganizationId, readModel.Request.ProjectId);
         if (!IsPermissionScopeCompatible(scope.ScopeType, permission!.AllowedScopes))
         {
-            return Deny(AuthorizationReasonCode.DeniedScopeMismatch);
+            return Outcome(Deny(AuthorizationReasonCode.DeniedScopeMismatch));
         }
 
         var isOtherUserCheck = requestedSubjectUserId is not null && requestedSubjectUserId.Value != actor.UserId;
         if (isOtherUserCheck && organization.OwnerUserId != actor.UserId)
         {
-            return Deny(AuthorizationReasonCode.DeniedCheckOtherUsersNotAllowed);
+            return Outcome(Deny(AuthorizationReasonCode.DeniedCheckOtherUsersNotAllowed));
         }
 
         if (organization.OwnerUserId != subject.UserId &&
             readModel.SubjectMembership?.IsActive != true)
         {
-            return Deny(AuthorizationReasonCode.DeniedMembershipNotActive);
+            return Outcome(Deny(AuthorizationReasonCode.DeniedMembershipNotActive));
         }
 
         if (organization.OwnerUserId == subject.UserId)
         {
-            return Allow(AuthorizationReasonCode.AllowedOwnerOverride);
+            return Outcome(Allow(AuthorizationReasonCode.AllowedOwnerOverride));
+        }
+
+        var roleAssignmentPath = FindRoleAssignmentPermissionPath(readModel, permission, clock.UtcNow);
+        if (roleAssignmentPath is not null)
+        {
+            return Outcome(Allow(AuthorizationReasonCode.AllowedRolePermissionMatch), roleAssignmentPath.AssignmentExpiresAtUtc);
         }
 
         if (readModel.Request.ProjectId is not null &&
             HasProjectAdministratorPermissionPath(readModel, permission))
         {
-            return Allow(AuthorizationReasonCode.AllowedRolePermissionMatch);
+            return Outcome(Allow(AuthorizationReasonCode.AllowedRolePermissionMatch));
         }
 
         // M07 RoleAssignments and M08 DirectGrants will add paths here without changing fail-closed defaults.
-        return Deny(AuthorizationReasonCode.DeniedNoApplicableGrant);
+        return Outcome(Deny(AuthorizationReasonCode.DeniedNoApplicableGrant));
     }
 
     private static bool IsVisibleActivePermission(
@@ -212,6 +259,50 @@ public sealed class AuthorizationDecisionService(
             IsPermissionScopeCompatible(AuthorizationScopeType.Project, path.PermissionAllowedScopes));
     }
 
+    private static RoleAssignmentPermissionPathReadModel? FindRoleAssignmentPermissionPath(
+        AuthorizationEvaluationReadModel readModel,
+        AuthorizationPermissionReadModel permission,
+        DateTimeOffset nowUtc)
+    {
+        var requestedScopeType = readModel.Request.ProjectId is null
+            ? RoleAssignmentScopeType.Organization
+            : RoleAssignmentScopeType.Project;
+        var requestedScopeId = readModel.Request.ProjectId ?? readModel.Request.OrganizationId;
+
+        return readModel.RoleAssignmentPermissionPaths.FirstOrDefault(path =>
+            path.AssignmentOrganizationId == readModel.Request.OrganizationId &&
+            path.AssignmentUserId == readModel.Request.SubjectUserId &&
+            path.AssignmentStatus is RoleAssignmentStatus.Active or RoleAssignmentStatus.Scheduled &&
+            path.AssignmentStartsAtUtc <= nowUtc &&
+            (path.AssignmentExpiresAtUtc is null || nowUtc < path.AssignmentExpiresAtUtc.Value) &&
+            path.RoleIsActive &&
+            path.PermissionId == permission.Id &&
+            path.PermissionIsActive &&
+            string.Equals(path.PermissionNormalizedKey, readModel.Request.NormalizedPermissionKey, StringComparison.Ordinal) &&
+            IsRoleScopeCompatibleWithAssignment(path) &&
+            IsAssignmentScopeCompatible(path, requestedScopeType, requestedScopeId) &&
+            IsPermissionScopeCompatible(readModel.Request.ProjectId is null ? AuthorizationScopeType.Organization : AuthorizationScopeType.Project, path.PermissionAllowedScopes));
+    }
+
+    private static bool IsRoleScopeCompatibleWithAssignment(RoleAssignmentPermissionPathReadModel path)
+    {
+        return path.AssignmentScopeType switch
+        {
+            RoleAssignmentScopeType.Organization => path.RoleScopeType == RoleScopeType.Organization,
+            RoleAssignmentScopeType.Project => path.RoleScopeType == RoleScopeType.Project,
+            _ => false
+        };
+    }
+
+    private static bool IsAssignmentScopeCompatible(
+        RoleAssignmentPermissionPathReadModel path,
+        RoleAssignmentScopeType requestedScopeType,
+        Guid requestedScopeId)
+    {
+        return path.AssignmentScopeType == requestedScopeType &&
+            path.AssignmentScopeId == requestedScopeId;
+    }
+
     private static bool IsPermissionScopeCompatible(
         AuthorizationScopeType requestedScope,
         PermissionAllowedScopes allowedScopes)
@@ -232,6 +323,50 @@ public sealed class AuthorizationDecisionService(
     private AuthorizationDecision Deny(string reasonCode)
     {
         return AuthorizationDecision.Deny(reasonCode, clock.UtcNow);
+    }
+
+    private static AuthorizationDecisionCacheKey? TryCreateCacheKey(AuthorizationEvaluationReadModel readModel)
+    {
+        if (readModel.Organization is null || readModel.SubjectMembership is null)
+        {
+            return null;
+        }
+
+        var scope = new AuthorizationScope(readModel.Request.OrganizationId, readModel.Request.ProjectId);
+        var scopeId = readModel.Request.ProjectId ?? readModel.Request.OrganizationId;
+
+        return new AuthorizationDecisionCacheKey(
+            readModel.Request.OrganizationId,
+            readModel.Organization.PolicyVersion,
+            readModel.Request.SubjectUserId,
+            readModel.SubjectMembership.AuthorizationVersion,
+            scope.ScopeType,
+            scopeId,
+            readModel.Request.NormalizedPermissionKey);
+    }
+
+    private static TimeSpan CalculateCacheTtl(EvaluationOutcome outcome, DateTimeOffset nowUtc)
+    {
+        var configuredTtl = outcome.Decision.Allowed
+            ? TimeSpan.FromMinutes(2)
+            : TimeSpan.FromSeconds(30);
+
+        if (!outcome.Decision.Allowed || outcome.MatchedAccessExpiresAtUtc is null)
+        {
+            return configuredTtl;
+        }
+
+        var remaining = outcome.MatchedAccessExpiresAtUtc.Value - nowUtc;
+        return remaining <= TimeSpan.Zero
+            ? TimeSpan.Zero
+            : (remaining < configuredTtl ? remaining : configuredTtl);
+    }
+
+    private static EvaluationOutcome Outcome(
+        AuthorizationDecision decision,
+        DateTimeOffset? matchedAccessExpiresAtUtc = null)
+    {
+        return new EvaluationOutcome(decision, matchedAccessExpiresAtUtc);
     }
 
     private static AuthorizationEvaluationReadRequest CreateReadRequest(
@@ -264,4 +399,8 @@ public sealed class AuthorizationDecisionService(
         int Index,
         BatchCheckPermissionItem Item,
         UserResolution Resolution);
+
+    private sealed record EvaluationOutcome(
+        AuthorizationDecision Decision,
+        DateTimeOffset? MatchedAccessExpiresAtUtc);
 }

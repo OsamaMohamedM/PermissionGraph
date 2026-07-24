@@ -1,6 +1,8 @@
 namespace PermissionGraph.Infrastructure.Services.Authorization;
 
-internal sealed class EfAuthorizationReadService(PermissionGraphDbContext dbContext) : IAuthorizationReadService
+internal sealed class EfAuthorizationReadService(
+    PermissionGraphDbContext dbContext,
+    IClock clock) : IAuthorizationReadService
 {
     public async Task<AuthorizationEvaluationReadModel> LoadEvaluationAsync(
         AuthorizationEvaluationReadRequest request,
@@ -12,11 +14,12 @@ internal sealed class EfAuthorizationReadService(PermissionGraphDbContext dbCont
             ? new Dictionary<Guid, AuthorizationProjectReadModel>()
             : await LoadProjectsAsync([request.ProjectId.Value], cancellationToken);
         var memberships = await LoadMembershipsAsync([request], cancellationToken);
-        var paths = request.ProjectId is null
+        var roleAssignmentPaths = await LoadRoleAssignmentPermissionPathsAsync([request], cancellationToken);
+        var projectAdministratorPaths = request.ProjectId is null
             ? []
             : await LoadProjectAdministratorPermissionPathsAsync([request], cancellationToken);
 
-        return BuildReadModel(request, organization, permissions, projects, memberships, paths);
+        return BuildReadModel(request, organization, permissions, projects, memberships, roleAssignmentPaths, projectAdministratorPaths);
     }
 
     public async Task<IReadOnlyList<AuthorizationEvaluationReadModel>> LoadBatchEvaluationAsync(
@@ -44,12 +47,13 @@ internal sealed class EfAuthorizationReadService(PermissionGraphDbContext dbCont
             ? new Dictionary<Guid, AuthorizationProjectReadModel>()
             : await LoadProjectsAsync(projectIds, cancellationToken);
         var memberships = await LoadMembershipsAsync(requests, cancellationToken);
-        var paths = projectIds.Length == 0
+        var roleAssignmentPaths = await LoadRoleAssignmentPermissionPathsAsync(requests, cancellationToken);
+        var projectAdministratorPaths = projectIds.Length == 0
             ? []
             : await LoadProjectAdministratorPermissionPathsAsync(requests, cancellationToken);
 
         return requests
-            .Select(request => BuildReadModel(request, organizations, permissions, projects, memberships, paths))
+            .Select(request => BuildReadModel(request, organizations, permissions, projects, memberships, roleAssignmentPaths, projectAdministratorPaths))
             .ToArray();
     }
 
@@ -63,7 +67,8 @@ internal sealed class EfAuthorizationReadService(PermissionGraphDbContext dbCont
             .Select(organization => new AuthorizationOrganizationReadModel(
                 organization.Id,
                 organization.OwnerUserId,
-                organization.IsActive))
+                organization.IsActive,
+                organization.PolicyVersion))
             .ToDictionaryAsync(organization => organization.Id, cancellationToken);
     }
 
@@ -149,12 +154,74 @@ internal sealed class EfAuthorizationReadService(PermissionGraphDbContext dbCont
             .Select(membership => new AuthorizationMembershipReadModel(
                 membership.OrganizationId,
                 membership.UserId,
-                membership.IsActive))
+                membership.IsActive,
+                membership.AuthorizationVersion))
             .ToListAsync(cancellationToken);
 
         return memberships.ToDictionary(
             membership => new MembershipLookupKey(membership.OrganizationId, membership.UserId),
             membership => membership);
+    }
+
+    private async Task<IReadOnlyList<RoleAssignmentPermissionPathReadModel>> LoadRoleAssignmentPermissionPathsAsync(
+        IReadOnlyList<AuthorizationEvaluationReadRequest> requests,
+        CancellationToken cancellationToken)
+    {
+        var now = clock.UtcNow;
+        var organizationIds = requests
+            .Select(request => request.OrganizationId)
+            .Distinct()
+            .ToArray();
+        var subjectUserIds = requests
+            .Select(request => request.SubjectUserId)
+            .Distinct()
+            .ToArray();
+        var normalizedPermissionKeys = requests
+            .Select(request => request.NormalizedPermissionKey)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        var projectIds = requests
+            .Where(request => request.ProjectId is not null)
+            .Select(request => request.ProjectId!.Value)
+            .Distinct()
+            .ToArray();
+
+        return await (
+            from assignment in dbContext.RoleAssignments.AsNoTracking()
+            join role in dbContext.Roles.AsNoTracking()
+                on new { assignment.RoleId, assignment.OrganizationId } equals new { RoleId = role.Id, role.OrganizationId }
+            join rolePermission in dbContext.RolePermissions.AsNoTracking()
+                on role.Id equals rolePermission.RoleId
+            join permission in dbContext.PermissionDefinitions.AsNoTracking()
+                on rolePermission.PermissionId equals permission.Id
+            where organizationIds.Contains(assignment.OrganizationId) &&
+                subjectUserIds.Contains(assignment.UserId) &&
+                (assignment.Status == RoleAssignmentStatus.Active || assignment.Status == RoleAssignmentStatus.Scheduled) &&
+                assignment.StartsAtUtc <= now &&
+                (assignment.ExpiresAtUtc == null || now < assignment.ExpiresAtUtc) &&
+                role.IsActive &&
+                normalizedPermissionKeys.Contains(permission.NormalizedKey) &&
+                permission.IsActive &&
+                (permission.PermissionType == PermissionType.Platform ||
+                    permission.OrganizationId == assignment.OrganizationId) &&
+                (assignment.ScopeType == RoleAssignmentScopeType.Organization ||
+                    projectIds.Contains(assignment.ScopeId))
+            select new RoleAssignmentPermissionPathReadModel(
+                assignment.OrganizationId,
+                assignment.UserId,
+                assignment.RoleId,
+                assignment.ScopeType,
+                assignment.ScopeId,
+                assignment.Status,
+                assignment.StartsAtUtc,
+                assignment.ExpiresAtUtc,
+                role.IsActive,
+                role.ScopeType,
+                permission.Id,
+                permission.NormalizedKey,
+                permission.AllowedScopes,
+                permission.IsActive))
+            .ToListAsync(cancellationToken);
     }
 
     private async Task<IReadOnlyList<ProjectAdministratorPermissionPathReadModel>> LoadProjectAdministratorPermissionPathsAsync(
@@ -220,7 +287,8 @@ internal sealed class EfAuthorizationReadService(PermissionGraphDbContext dbCont
         IReadOnlyDictionary<PermissionLookupKey, AuthorizationPermissionReadModel> permissions,
         IReadOnlyDictionary<Guid, AuthorizationProjectReadModel> projects,
         IReadOnlyDictionary<MembershipLookupKey, AuthorizationMembershipReadModel> memberships,
-        IReadOnlyList<ProjectAdministratorPermissionPathReadModel> paths)
+        IReadOnlyList<RoleAssignmentPermissionPathReadModel> roleAssignmentPaths,
+        IReadOnlyList<ProjectAdministratorPermissionPathReadModel> projectAdministratorPaths)
     {
         organizations.TryGetValue(request.OrganizationId, out var organization);
         permissions.TryGetValue(new PermissionLookupKey(request.OrganizationId, request.NormalizedPermissionKey), out var permission);
@@ -229,9 +297,17 @@ internal sealed class EfAuthorizationReadService(PermissionGraphDbContext dbCont
             : foundProject;
         memberships.TryGetValue(new MembershipLookupKey(request.OrganizationId, request.SubjectUserId), out var membership);
 
-        var matchingPaths = request.ProjectId is null
+        var matchingRoleAssignmentPaths = roleAssignmentPaths
+            .Where(path =>
+                path.AssignmentOrganizationId == request.OrganizationId &&
+                path.AssignmentUserId == request.SubjectUserId &&
+                string.Equals(path.PermissionNormalizedKey, request.NormalizedPermissionKey, StringComparison.Ordinal) &&
+                (path.AssignmentScopeType == RoleAssignmentScopeType.Organization ||
+                    (request.ProjectId is not null && path.AssignmentScopeId == request.ProjectId.Value)))
+            .ToArray();
+        var matchingProjectAdministratorPaths = request.ProjectId is null
             ? []
-            : paths
+            : projectAdministratorPaths
                 .Where(path =>
                     path.AssignmentOrganizationId == request.OrganizationId &&
                     path.AssignmentProjectId == request.ProjectId.Value &&
@@ -245,7 +321,8 @@ internal sealed class EfAuthorizationReadService(PermissionGraphDbContext dbCont
             permission,
             project,
             membership,
-            matchingPaths);
+            matchingRoleAssignmentPaths,
+            matchingProjectAdministratorPaths);
     }
 
     private sealed record PermissionLookupKey(Guid OrganizationId, string NormalizedPermissionKey);

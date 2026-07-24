@@ -21,6 +21,8 @@ public sealed class PermissionGraphDbContext(DbContextOptions<PermissionGraphDbC
 
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
 
+    public DbSet<RoleAssignment> RoleAssignments => Set<RoleAssignment>();
+
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         ApplyInfrastructureManagedVersions();
@@ -152,6 +154,14 @@ public sealed class PermissionGraphDbContext(DbContextOptions<PermissionGraphDbC
                 .HasForeignKey(rolePermission => rolePermission.PermissionId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
+
+        builder.Entity<RoleAssignment>(entity =>
+        {
+            entity.HasOne<Organization>()
+                .WithMany()
+                .HasForeignKey(assignment => assignment.OrganizationId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
     }
 
     private void ApplyInfrastructureManagedVersions()
@@ -218,6 +228,19 @@ public sealed class PermissionGraphDbContext(DbContextOptions<PermissionGraphDbC
             {
                 var original = entry.Property(role => role.Version).OriginalValue;
                 entry.Property(role => role.Version).CurrentValue = original + 1;
+            }
+        }
+
+        foreach (var entry in ChangeTracker.Entries<RoleAssignment>())
+        {
+            if (entry.State == EntityState.Added)
+            {
+                entry.Property(assignment => assignment.Version).CurrentValue = 1;
+            }
+            else if (entry.State == EntityState.Modified)
+            {
+                var original = entry.Property(assignment => assignment.Version).OriginalValue;
+                entry.Property(assignment => assignment.Version).CurrentValue = original + 1;
             }
         }
     }

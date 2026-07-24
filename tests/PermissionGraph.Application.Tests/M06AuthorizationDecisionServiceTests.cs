@@ -328,7 +328,7 @@ public sealed class M06AuthorizationDecisionServiceTests
     }
 
     [Fact]
-    public void Evaluator_DoesNotDependOnInfrastructureEfRedisOrCaches()
+    public void Evaluator_DoesNotDependOnInfrastructureEfOrRedis()
     {
         var parameterTypes = typeof(AuthorizationDecisionService)
             .GetConstructors(BindingFlags.Public | BindingFlags.Instance)
@@ -340,7 +340,7 @@ public sealed class M06AuthorizationDecisionServiceTests
         parameterTypes.Should().NotContain(type => type.Contains("Infrastructure", StringComparison.Ordinal));
         parameterTypes.Should().NotContain(type => type.Contains("EntityFramework", StringComparison.Ordinal));
         parameterTypes.Should().NotContain(type => type.Contains("Redis", StringComparison.OrdinalIgnoreCase));
-        parameterTypes.Should().NotContain(type => type.Contains("Cache", StringComparison.OrdinalIgnoreCase));
+        parameterTypes.Should().Contain(typeof(IAuthorizationDecisionCache).FullName);
     }
 
     private static CheckPermissionQuery DefaultProjectQuery(Guid? subjectUserId = null)
@@ -367,6 +367,7 @@ public sealed class M06AuthorizationDecisionServiceTests
                 CurrentUser,
                 Users,
                 ReadService,
+                new NoOpAuthorizationDecisionCache(),
                 Clock);
 
             if (currentUserId is not null)
@@ -536,6 +537,7 @@ public sealed class M06AuthorizationDecisionServiceTests
                 permission,
                 project,
                 membership,
+                [],
                 projectAdministratorPaths);
         }
     }

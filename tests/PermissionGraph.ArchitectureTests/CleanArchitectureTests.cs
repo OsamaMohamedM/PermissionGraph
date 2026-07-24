@@ -111,16 +111,21 @@ public sealed class CleanArchitectureTests
     }
 
     [Fact]
-    public void LaterMilestoneAuthorizationEngineTypesDoNotExistInM04()
+    public void M07AuthorizationTypesStayOutOfApiBusinessLogic()
     {
         Types.InAssemblies([
-                DomainAssembly,
-                ApplicationAssembly,
-                InfrastructureAssembly,
                 ApiAssembly
             ])
             .That()
             .HaveNameMatching(".*(RoleAssignment|AuthorizationEngine).*")
+            .And()
+            .DoNotHaveNameEndingWith("Endpoints")
+            .And()
+            .DoNotHaveNameEndingWith("RequestMappings")
+            .And()
+            .DoNotHaveNameEndingWith("RequestValidator")
+            .And()
+            .DoNotHaveNameEndingWith("Request")
             .GetTypes()
             .Should()
             .BeEmpty();

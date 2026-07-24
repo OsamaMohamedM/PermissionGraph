@@ -49,10 +49,12 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IOrganizationMembershipRepository, EfOrganizationMembershipRepository>();
         services.AddScoped<IPermissionDefinitionRepository, EfPermissionDefinitionRepository>();
         services.AddScoped<IRoleRepository, EfRoleRepository>();
+        services.AddScoped<IRoleAssignmentRepository, EfRoleAssignmentRepository>();
         services.AddScoped<IOrganizationPolicyVersionUpdater, EfOrganizationPolicyVersionUpdater>();
         services.AddScoped<IProjectRepository, EfProjectRepository>();
         services.AddScoped<IProjectAdministratorAssignmentService, EfProjectAdministratorAssignmentService>();
         services.AddScoped<IAuthorizationReadService, EfAuthorizationReadService>();
+        services.AddScoped<IAuthorizationDecisionCache, RedisAuthorizationDecisionCache>();
         services.AddScoped<IUserAccountLookup, IdentityUserAccountLookup>();
         services.AddScoped<IRecentAuthenticationVerifier, IdentityRecentAuthenticationVerifier>();
         services.AddScoped<IApplicationTransaction, EfApplicationTransaction>();
@@ -60,7 +62,27 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IOrganizationSeedService, M02OrganizationSeedService>();
 
         services.AddSingleton<IConnectionMultiplexer>(_ =>
-            ConnectionMultiplexer.Connect(redisConnection));
+        {
+            var options = ConfigurationOptions.Parse(redisConnection);
+            options.AbortOnConnectFail = false;
+            return ConnectionMultiplexer.Connect(options);
+        });
+
+        return services;
+    }
+
+    public static IServiceCollection AddPermissionGraphRoleAssignmentExpirationWorker(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var batchSize = configuration.GetValue("Worker:RoleAssignmentExpiration:BatchSize", 100);
+        var intervalSeconds = configuration.GetValue("Worker:RoleAssignmentExpiration:IntervalSeconds", 60);
+        services.AddSingleton(new RoleAssignmentExpirationOptions
+        {
+            BatchSize = Math.Clamp(batchSize, 1, 500),
+            Interval = TimeSpan.FromSeconds(Math.Clamp(intervalSeconds, 5, 86_400))
+        });
+        services.AddHostedService<RoleAssignmentExpirationWorker>();
 
         return services;
     }

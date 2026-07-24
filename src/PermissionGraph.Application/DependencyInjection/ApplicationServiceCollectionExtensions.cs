@@ -10,6 +10,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<ProjectAccessHelper>();
         services.AddScoped<PermissionCatalogAccessHelper>();
         services.AddScoped<RoleCatalogAccessHelper>();
+        services.AddScoped<IAuthorizationDecisionCache, NoOpAuthorizationDecisionCache>();
         services.AddScoped<IAuthorizationDecisionService, AuthorizationDecisionService>();
 
         services.AddScoped<CreateOrganizationHandler>();
@@ -48,6 +49,12 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<ArchiveCustomRoleHandler>();
         services.AddScoped<ActivateCustomRoleHandler>();
         services.AddScoped<ReplaceRolePermissionsHandler>();
+
+        services.AddScoped<AssignRoleHandler>();
+        services.AddScoped<GetRoleAssignmentHandler>();
+        services.AddScoped<ListRoleAssignmentsHandler>();
+        services.AddScoped<RevokeRoleAssignmentHandler>();
+        services.AddScoped<ExpireRoleAssignmentsHandler>();
 
         return services;
     }

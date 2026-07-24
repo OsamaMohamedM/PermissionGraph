@@ -142,12 +142,12 @@ public sealed class OrganizationEndpointTests : IAsyncLifetime
         await AssertNoContentBodyAsync(archive);
 
         var updateArchived = await client.PatchAsJsonAsync($"/api/v1/organizations/{organization.Id}", new UpdateOrganizationRequest("Archived Rename", null));
-        updateArchived.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        await AssertProblemAsync(updateArchived, "Access is forbidden.");
+        updateArchived.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        await AssertProblemAsync(updateArchived, "Organization could not be found.");
 
         var addToArchived = await client.PostAsJsonAsync($"/api/v1/organizations/{organization.Id}/members", new AddOrganizationMemberRequest(member.Email));
-        addToArchived.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        await AssertProblemAsync(addToArchived, "Access is forbidden.");
+        addToArchived.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        await AssertProblemAsync(addToArchived, "Organization could not be found.");
     }
 
     [Fact]
