@@ -9,6 +9,8 @@ public sealed class AuthorizationDecisionService(
     IAuthorizationDecisionCache authorizationDecisionCache,
     IClock clock) : IAuthorizationDecisionService
 {
+    private const string ExplainOthersPermissionKey = "pg.authorization.explain_others";
+
     public async Task<AuthorizationDecision> CheckAsync(
         CheckPermissionQuery query,
         CancellationToken cancellationToken)
@@ -139,7 +141,8 @@ public sealed class AuthorizationDecisionService(
         Guid? requestedSubjectUserId,
         CancellationToken cancellationToken)
     {
-        var cacheKey = TryCreateCacheKey(readModel);
+        var isOtherUserCheck = requestedSubjectUserId is not null && requestedSubjectUserId.Value != actor.UserId;
+        var cacheKey = isOtherUserCheck ? null : TryCreateCacheKey(readModel);
         if (cacheKey is not null)
         {
             var cached = await authorizationDecisionCache.GetAsync(cacheKey, cancellationToken);
@@ -149,7 +152,12 @@ public sealed class AuthorizationDecisionService(
             }
         }
 
-        var outcome = EvaluateReadModel(readModel, actor, subject, requestedSubjectUserId);
+        var outcome = await EvaluateReadModelAsync(
+            readModel,
+            actor,
+            subject,
+            requestedSubjectUserId,
+            cancellationToken);
         if (cacheKey is not null)
         {
             var ttl = CalculateCacheTtl(outcome, clock.UtcNow);
@@ -162,11 +170,12 @@ public sealed class AuthorizationDecisionService(
         return outcome.Decision;
     }
 
-    private EvaluationOutcome EvaluateReadModel(
+    private async Task<EvaluationOutcome> EvaluateReadModelAsync(
         AuthorizationEvaluationReadModel readModel,
         UserAccount actor,
         UserAccount subject,
-        Guid? requestedSubjectUserId)
+        Guid? requestedSubjectUserId,
+        CancellationToken cancellationToken)
     {
         var organization = readModel.Organization;
         if (organization is null || !organization.IsActive)
@@ -201,7 +210,9 @@ public sealed class AuthorizationDecisionService(
         }
 
         var isOtherUserCheck = requestedSubjectUserId is not null && requestedSubjectUserId.Value != actor.UserId;
-        if (isOtherUserCheck && organization.OwnerUserId != actor.UserId)
+        if (isOtherUserCheck &&
+            organization.OwnerUserId != actor.UserId &&
+            !await ActorHasExplainOthersPermissionAsync(readModel, actor, cancellationToken))
         {
             return Outcome(Deny(AuthorizationReasonCode.DeniedCheckOtherUsersNotAllowed));
         }
@@ -231,6 +242,29 @@ public sealed class AuthorizationDecisionService(
 
         // M07 RoleAssignments and M08 DirectGrants will add paths here without changing fail-closed defaults.
         return Outcome(Deny(AuthorizationReasonCode.DeniedNoApplicableGrant));
+    }
+
+    private async Task<bool> ActorHasExplainOthersPermissionAsync(
+        AuthorizationEvaluationReadModel requestedReadModel,
+        UserAccount actor,
+        CancellationToken cancellationToken)
+    {
+        var actorPermissionReadModel = await authorizationReadService.LoadEvaluationAsync(
+            new AuthorizationEvaluationReadRequest(
+                actor.UserId,
+                requestedReadModel.Request.OrganizationId,
+                requestedReadModel.Request.ProjectId,
+                ExplainOthersPermissionKey),
+            cancellationToken);
+
+        var outcome = await EvaluateReadModelAsync(
+            actorPermissionReadModel,
+            actor,
+            actor,
+            null,
+            cancellationToken);
+
+        return outcome.Decision.Allowed;
     }
 
     private static bool IsVisibleActivePermission(
