@@ -12,6 +12,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<RoleCatalogAccessHelper>();
         services.AddScoped<IAuthorizationDecisionCache, NoOpAuthorizationDecisionCache>();
         services.AddScoped<IAuthorizationDecisionService, AuthorizationDecisionService>();
+        services.AddScoped<ExplainAccessHandler>();
 
         services.AddScoped<CreateOrganizationHandler>();
         services.AddScoped<GetOrganizationHandler>();

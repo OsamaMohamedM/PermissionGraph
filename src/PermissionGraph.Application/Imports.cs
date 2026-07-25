@@ -127,3 +127,6 @@ global using PermissionGraph.Application.Features.Authorization.BatchCheckPermis
 global using PermissionGraph.Application.Features.Authorization.CheckPermission.Handlers;
 global using PermissionGraph.Application.Features.Authorization.CheckPermission.Models;
 global using PermissionGraph.Application.Features.Authorization.CheckPermission.Validators;
+global using PermissionGraph.Application.Features.Authorization.ExplainAccess.Handlers;
+global using PermissionGraph.Application.Features.Authorization.ExplainAccess.Models;
+global using PermissionGraph.Application.Features.Authorization.ExplainAccess.Validators;
