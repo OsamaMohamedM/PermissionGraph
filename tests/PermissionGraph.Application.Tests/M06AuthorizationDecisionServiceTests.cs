@@ -292,7 +292,32 @@ public sealed class M06AuthorizationDecisionServiceTests
     }
 
     [Fact]
-    public async Task Check_OtherUserContinuesForNonOwnerWithExplainOthersPermission()
+    public async Task Check_OtherUserContinuesForNonOwnerWithCheckOtherUsersPermission()
+    {
+        var fixture = AuthorizationDecisionFixture.Create(ActorId);
+        fixture.AddBaseData(ownerUserId: Guid.Parse("88888888-8888-8888-8888-888888888888"));
+        fixture.AddUser(SubjectId);
+        fixture.AddMembership(ActorId);
+        fixture.AddMembership(SubjectId);
+        fixture.AddPermission(
+            normalizedKey: "pg.authorization.check_other_users",
+            permissionId: Guid.Parse("77777777-7777-7777-7777-777777777777"));
+        fixture.AddProjectAdministratorPath(
+            ActorId,
+            ProjectId,
+            permissionId: Guid.Parse("77777777-7777-7777-7777-777777777777"),
+            permissionKey: "pg.authorization.check_other_users");
+
+        var decision = await fixture.Service.CheckAsync(
+            DefaultProjectQuery(subjectUserId: SubjectId),
+            CancellationToken.None);
+
+        decision.ShouldBeDenied(AuthorizationReasonCode.DeniedNoApplicableGrant);
+        fixture.ReadService.LoadSingleCalls.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Check_OtherUserWithOnlyExplainOthersPermissionIsDenied()
     {
         var fixture = AuthorizationDecisionFixture.Create(ActorId);
         fixture.AddBaseData(ownerUserId: Guid.Parse("88888888-8888-8888-8888-888888888888"));
@@ -312,7 +337,7 @@ public sealed class M06AuthorizationDecisionServiceTests
             DefaultProjectQuery(subjectUserId: SubjectId),
             CancellationToken.None);
 
-        decision.ShouldBeDenied(AuthorizationReasonCode.DeniedNoApplicableGrant);
+        decision.ShouldBeDenied(AuthorizationReasonCode.DeniedCheckOtherUsersNotAllowed);
         fixture.ReadService.LoadSingleCalls.Should().Be(2);
     }
 

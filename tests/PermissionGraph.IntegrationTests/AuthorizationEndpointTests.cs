@@ -218,7 +218,7 @@ public sealed class AuthorizationEndpointTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task DelegatedExplainOthersCanCheckAndExplainOtherUsersConsistently()
+    public async Task DelegatedCheckOtherAndExplainOtherUsersConsistently()
     {
         using var factory = await CreateMigratedFactoryAsync();
         using var client = factory.CreateClient();
@@ -231,8 +231,9 @@ public sealed class AuthorizationEndpointTests : IAsyncLifetime
         await AddMemberAsync(client, organization.Id, subject.Email);
         await AddMemberAsync(client, organization.Id, delegated.Email);
         var checkPermission = await PlatformPermissionAsync(factory, "pg.authorization.check");
+        var checkOther = await PlatformPermissionAsync(factory, "pg.authorization.check_other_users");
         var explainOthers = await PlatformPermissionAsync(factory, "pg.authorization.explain_others");
-        var role = await CreateRoleAsync(client, organization.Id, "Delegated Explainers", "Organization", [checkPermission.Id, explainOthers.Id]);
+        var role = await CreateRoleAsync(client, organization.Id, "Delegated Explainers", "Organization", [checkPermission.Id, checkOther.Id, explainOthers.Id]);
         await CreateAssignmentAsync(client, organization.Id, delegated.UserId, role.Id, "Organization", organization.Id);
 
         await AuthorizeAsync(client, delegated.Email);
@@ -250,6 +251,42 @@ public sealed class AuthorizationEndpointTests : IAsyncLifetime
         decision.ReasonCode.Should().NotBe(AuthorizationReasonCode.DeniedCheckOtherUsersNotAllowed);
         explanation.Allowed.Should().Be(decision.Allowed);
         explanation.ReasonCode.Should().Be(decision.ReasonCode);
+        explanation.ActorUserId.Should().Be(delegated.UserId);
+        explanation.SubjectUserId.Should().Be(subject.UserId);
+    }
+
+    [Fact]
+    public async Task DelegatedExplainOthersDoesNotAuthorizeCheckOtherUsers()
+    {
+        using var factory = await CreateMigratedFactoryAsync();
+        using var client = factory.CreateClient();
+        var owner = await RegisterAndAuthorizeAsync(client, "delegated-explain-only-owner@example.test");
+        var subject = await RegisterAndAuthorizeAsync(client, "delegated-explain-only-subject@example.test");
+        var delegated = await RegisterAndAuthorizeAsync(client, "delegated-explain-only-admin@example.test");
+
+        await AuthorizeAsync(client, owner.Email);
+        var organization = await CreateOrganizationAsync(client, "Delegated Explain Only Org");
+        await AddMemberAsync(client, organization.Id, subject.Email);
+        await AddMemberAsync(client, organization.Id, delegated.Email);
+        var checkPermission = await PlatformPermissionAsync(factory, "pg.authorization.check");
+        var explainOthers = await PlatformPermissionAsync(factory, "pg.authorization.explain_others");
+        var role = await CreateRoleAsync(client, organization.Id, "Delegated Explain Only", "Organization", [checkPermission.Id, explainOthers.Id]);
+        await CreateAssignmentAsync(client, organization.Id, delegated.UserId, role.Id, "Organization", organization.Id);
+
+        await AuthorizeAsync(client, delegated.Email);
+        var check = await client.PostAsJsonAsync(
+            $"/api/v1/organizations/{organization.Id}/authorization/check",
+            new AuthorizationCheckRequest(subject.UserId, null, "pg.projects.view"));
+        var explain = await client.PostAsJsonAsync(
+            $"/api/v1/organizations/{organization.Id}/authorization/explain",
+            new ExplainAccessRequest(subject.UserId, null, "pg.projects.view", null));
+
+        check.StatusCode.Should().Be(HttpStatusCode.OK);
+        explain.StatusCode.Should().Be(HttpStatusCode.OK);
+        var decision = (await check.Content.ReadFromJsonAsync<AuthorizationDecisionResponse>())!;
+        var explanation = (await explain.Content.ReadFromJsonAsync<ExplainAccessResponse>())!;
+        decision.Allowed.Should().BeFalse();
+        decision.ReasonCode.Should().Be(AuthorizationReasonCode.DeniedCheckOtherUsersNotAllowed);
         explanation.ActorUserId.Should().Be(delegated.UserId);
         explanation.SubjectUserId.Should().Be(subject.UserId);
     }
