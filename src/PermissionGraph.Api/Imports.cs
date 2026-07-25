@@ -22,6 +22,8 @@ global using PermissionGraph.Application.Common.Errors;
 global using PermissionGraph.Application.DependencyInjection;
 global using PermissionGraph.Application.Features.Authorization.BatchCheckPermissions.Models;
 global using PermissionGraph.Application.Features.Authorization.CheckPermission.Models;
+global using PermissionGraph.Application.Features.Authorization.ExplainAccess.Handlers;
+global using PermissionGraph.Application.Features.Authorization.ExplainAccess.Models;
 global using PermissionGraph.Application.Features.Memberships.AddOrganizationMember.Handlers;
 global using PermissionGraph.Application.Features.Memberships.AddOrganizationMember.Models;
 global using PermissionGraph.Application.Features.Memberships.GetOrganizationMember.Handlers;

@@ -15,6 +15,10 @@ public static class AuthorizationEndpoints
             .RequirePermission("pg.authorization.check")
             .AddEndpointFilter<ValidationFilter<AuthorizationBatchCheckRequest>>();
 
+        authorization.MapPost("/explain", ExplainAsync)
+            .RequireRateLimiting("authorization-explain")
+            .AddEndpointFilter<ValidationFilter<ExplainAccessRequest>>();
+
         return app;
     }
 
@@ -35,6 +39,16 @@ public static class AuthorizationEndpoints
         CancellationToken cancellationToken)
     {
         var result = await authorizationDecisionService.BatchCheckAsync(request.ToQuery(organizationId), cancellationToken);
+        return Results.Ok(result.ToResponse());
+    }
+
+    private static async Task<IResult> ExplainAsync(
+        Guid organizationId,
+        ExplainAccessRequest request,
+        ExplainAccessHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(request.ToQuery(organizationId), cancellationToken);
         return Results.Ok(result.ToResponse());
     }
 }

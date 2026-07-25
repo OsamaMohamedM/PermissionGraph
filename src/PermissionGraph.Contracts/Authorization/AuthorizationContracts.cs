@@ -26,3 +26,40 @@ public sealed record AuthorizationBatchDecisionResponse(
     string CorrelationId,
     int Index,
     AuthorizationDecisionResponse Decision);
+
+public sealed record ExplainAccessRequest(
+    Guid? SubjectUserId,
+    Guid? ProjectId,
+    string PermissionKey,
+    DateTimeOffset? EvaluatedAtUtc);
+
+public sealed record ExplainAccessResponse(
+    bool Allowed,
+    string ReasonCode,
+    DateTimeOffset EvaluatedAtUtc,
+    Guid ActorUserId,
+    Guid SubjectUserId,
+    Guid OrganizationId,
+    Guid? ProjectId,
+    string PermissionKey,
+    string ScopeType,
+    string Summary,
+    IReadOnlyList<AccessExplanationStepResponse> Steps,
+    AccessExplanationPathResponse? MatchedPath);
+
+public sealed record AccessExplanationStepResponse(
+    int Order,
+    string Code,
+    string Status,
+    string Message,
+    IReadOnlyDictionary<string, string> Details);
+
+public sealed record AccessExplanationPathResponse(
+    string Type,
+    Guid? AssignmentId,
+    Guid? RoleId,
+    string? RoleName,
+    string ScopeType,
+    Guid ScopeId,
+    DateTimeOffset? StartsAtUtc,
+    DateTimeOffset? ExpiresAtUtc);

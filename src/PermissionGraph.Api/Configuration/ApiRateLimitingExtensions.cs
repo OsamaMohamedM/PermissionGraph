@@ -37,6 +37,7 @@ public static class ApiRateLimitingExtensions
             AddFixedIpPolicy(options, "org-member-add", 20, TimeSpan.FromMinutes(1));
             AddFixedIpPolicy(options, "org-member-mutations", 30, TimeSpan.FromMinutes(1));
             AddFixedIpPolicy(options, "org-mutations", 30, TimeSpan.FromMinutes(1));
+            AddFixedIpPolicy(options, "authorization-explain", 20, TimeSpan.FromMinutes(1));
         });
 
         return services;
