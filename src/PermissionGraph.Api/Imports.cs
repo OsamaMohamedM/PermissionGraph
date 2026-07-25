@@ -8,6 +8,7 @@ global using Microsoft.AspNetCore.RateLimiting;
 global using Microsoft.Extensions.Diagnostics.HealthChecks;
 global using Microsoft.Extensions.Options;
 global using Microsoft.IdentityModel.Tokens;
+global using Microsoft.OpenApi;
 global using PermissionGraph.Api.Authorization;
 global using PermissionGraph.Api.Configuration;
 global using PermissionGraph.Api.Endpoints;

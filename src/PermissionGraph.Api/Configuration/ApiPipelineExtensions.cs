@@ -14,10 +14,17 @@ public static class ApiPipelineExtensions
 
     public static WebApplication MapApiEndpoints(this WebApplication app)
     {
-        if (app.Environment.IsDevelopment())
+        app.UseSwagger();
+        app.UseSwaggerUI(options =>
         {
-            app.MapOpenApi().AllowAnonymous();
-        }
+            options.DocumentTitle = "PermissionGraph API";
+            options.SwaggerEndpoint("/swagger/v1/swagger.json", "PermissionGraph API v1");
+            options.RoutePrefix = "swagger";
+            options.DisplayRequestDuration();
+            options.EnablePersistAuthorization();
+            options.EnableTryItOutByDefault();
+        });
+        app.MapGet("/", () => Results.Redirect("/swagger")).AllowAnonymous();
 
         if (app.Environment.IsEnvironment("Testing"))
         {
