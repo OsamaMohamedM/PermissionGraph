@@ -19,8 +19,21 @@ optionally on resource/project R, at time T?
 ```
 
 It is a multi-tenant, permission-based authorization system with organization and project/resource scopes, custom roles, custom permissions, temporary role assignments, audit records, versioned authorization invalidation, Redis decision caching, and deny-by-default behavior.
+## Demo & Verification
 
-This is not a project management application. In this backend, projects represent protected resources or authorization scopes, such as "Billing API", "Internal Dashboard", or "Customer Portal".
+The backend can be inspected locally through the ASP.NET Core Swagger document, exercised through HTTP clients such as Postman, and verified through the automated test suite.
+
+| Asset | Location |
+|---|---|
+| Local API base URL | `http://localhost:5208` |
+| |
+| Postman Collection | `docs/postman/PermissionGraph.postman_collection.json` |
+| Postman Environment | `docs/postman/PermissionGraph.local.postman_environment.json` |
+| Postman Instructions | `docs/postman/README.md` |
+| Test command | `dotnet test PermissionGraph.slnx -c Release` |
+
+Swagger UI is configured in the current API project.
+
 
 ## Why This Project Exists
 
@@ -429,7 +442,9 @@ Run the full suite before release:
 dotnet test PermissionGraph.slnx -c Release
 ```
 
-## Getting Started
+Integration tests use real infrastructure through Testcontainers and may require Docker Desktop or another compatible container runtime.
+
+## Quick Start
 
 ### Prerequisites
 
@@ -437,20 +452,18 @@ dotnet test PermissionGraph.slnx -c Release
 - Docker Desktop or another Docker Compose-compatible runtime.
 - Git.
 
-### Local Setup
-
 ```powershell
 git clone <repository-url>
 cd PermissionGraph
 Copy-Item .env.example .env
 ```
 
-Edit `.env` with local-only values. The repository expects PostgreSQL and Redis connection settings plus JWT/refresh-token secrets through environment variables.
+Edit `.env` with local-only placeholder values. Do not commit secrets, tokens, passwords, or real connection strings.
 
 Start dependencies:
 
 ```powershell
-docker compose up -d postgres redis
+docker compose up -d
 ```
 
 Restore and build:
@@ -470,7 +483,9 @@ Run the API:
 
 ```powershell
 dotnet run --project src/PermissionGraph.Api
-```
+``````
+
+Import the Postman collection and environment when those files are available under `docs/postman/`.
 
 Run the expiration worker in a second terminal when testing background expiration:
 
@@ -478,13 +493,46 @@ Run the expiration worker in a second terminal when testing background expiratio
 dotnet run --project src/PermissionGraph.Worker
 ```
 
-OpenAPI is mapped in Development through ASP.NET Core OpenAPI.
+## Postman Happy Path Demo
 
-## Running Tests
+The intended Postman demo should cover:
 
-```powershell
-dotnet test PermissionGraph.slnx -c Release
-```
+- Health checks.
+- Authentication.
+- Workspaces / Organizations.
+- Members.
+- Resources / Projects.
+- Permission Catalog.
+- Roles.
+- Role Assignments.
+- Authorization Check.
+- Explain Access.
+- Negative and security checks.
+
+Recommended happy path:
+
+1. Register or log in as the owner.
+2. Create a workspace/organization.
+3. Add a member.
+4. Create a protected resource/project.
+5. Create or select a role.
+6. Assign the role to the member.
+7. Run authorization check and confirm `Allowed`.
+8. Run Explain Access and confirm the allowed reason.
+9. Revoke the assignment.
+10. Run authorization check again and confirm `Denied`.
+
+Import flow:
+
+1. Import `docs/postman/PermissionGraph.postman_collection.json`.
+2. Import `docs/postman/PermissionGraph.local.postman_environment.json`.
+3. Select the local environment.
+4. Set `baseUrl` to `http://localhost:5208` if needed.
+5. Run folders in order.
+6. Start with `99 - Full Happy Path Demo` if that folder exists in the collection.
+
+The detailed Postman steps belong in `docs/postman/README.md` once the Postman assets are added.
+
 
 ## Example Authorization Scenario
 
@@ -501,32 +549,46 @@ dotnet test PermissionGraph.slnx -c Release
 11. Bob checks again.
 12. Result: denied with `DENIED_NO_APPLICABLE_GRANT`.
 
-## Roadmap
+## Project Status / Scope
 
-### Completed Functional Requirements
+### Completed
 
-- FR00 - Foundation.
-- FR01 - Authentication.
-- FR02 - Organizations & Memberships.
-- FR03 - Projects / Resources.
-- FR04 - Permission Catalog.
-- FR05 - Roles.
-- FR06 - Authorization Engine.
-- FR07 - Role Assignments & Temporary Access.
-- FR09 - Explain Access.
+- Authentication.
+- Workspaces / Organizations.
+- Members.
+- Resources / Projects.
+- Permission Catalog.
+- Roles.
+- Role Assignments.
+- Temporary and scheduled access.
+- Authorization Check.
+- Batch Check.
+- Explain Access.
+- Audit logging.
+- PostgreSQL and Redis integration.
 
-### Upcoming
+### Not Implemented / Out of Scope
 
 - Frontend Admin/User portal is planned separately.
-- Optional DirectPermissionGrant support may be reconsidered later, but it is not currently implemented.
+- Access Requests.
+- Direct Permission Grants.
+- Role inheritance.
+- Attribute-Based Access Control.
+- SSO.
 
-### Removed From Scope
+## Useful Project Links
 
-- Access Requests and approval workflows are removed from the project scope and are not presented as implemented features.
-
-## Screenshots
-
-Frontend is planned separately. Add screenshots here when the Admin/User portal is ready.
+| Item | Location |
+|---|---|
+| Local API base URL | `http://localhost:5208` |
+| OpenAPI document | `http://localhost:5208/openapi/v1.json` |
+| Postman collection | `docs/postman/PermissionGraph.postman_collection.json` |
+| Postman environment | `docs/postman/PermissionGraph.local.postman_environment.json` |
+| Postman instructions | `docs/postman/README.md` |
+| API project | `src/PermissionGraph.Api` |
+| Contracts project | `src/PermissionGraph.Contracts` |
+| Tests folder | `tests` |
+| Docker Compose | `docker-compose.yml` |
 
 ## Repository Structure
 

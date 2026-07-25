@@ -5,15 +5,6 @@ public static class ApiPipelineExtensions
     public static WebApplication UseApiPipeline(this WebApplication app)
     {
         app.UseExceptionHandler();
-        app.UseRateLimiter();
-        app.UseAuthentication();
-        app.UseAuthorization();
-
-        return app;
-    }
-
-    public static WebApplication MapApiEndpoints(this WebApplication app)
-    {
         app.UseSwagger();
         app.UseSwaggerUI(options =>
         {
@@ -24,6 +15,15 @@ public static class ApiPipelineExtensions
             options.EnablePersistAuthorization();
             options.EnableTryItOutByDefault();
         });
+        app.UseRateLimiter();
+        app.UseAuthentication();
+        app.UseAuthorization();
+
+        return app;
+    }
+
+    public static WebApplication MapApiEndpoints(this WebApplication app)
+    {
         app.MapGet("/", () => Results.Redirect("/swagger")).AllowAnonymous();
 
         if (app.Environment.IsEnvironment("Testing"))
