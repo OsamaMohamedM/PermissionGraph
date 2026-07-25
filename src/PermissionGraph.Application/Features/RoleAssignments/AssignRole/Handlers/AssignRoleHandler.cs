@@ -34,7 +34,7 @@ public sealed class AssignRoleHandler(
 
             if (command.UserId == actor.UserId)
             {
-                await TryAuditPrivilegeEscalationDeniedAsync(command.OrganizationId, actor.UserId, command.RoleId, cancellationToken);
+                await PersistPrivilegeEscalationDeniedAuditAsync(command.OrganizationId, actor.UserId, command.RoleId, cancellationToken);
                 throw new ForbiddenApplicationException(
                     "role_assignment_self_assignment_denied",
                     "A non-owner cannot assign a role to themselves.");
@@ -207,24 +207,46 @@ public sealed class AssignRoleHandler(
         Role role,
         CancellationToken cancellationToken)
     {
-        foreach (var rolePermission in role.Permissions)
-        {
-            var permission = await permissionRepository.GetVisibleByOrganizationAndIdAsync(
-                command.OrganizationId,
-                rolePermission.PermissionId,
-                cancellationToken);
+        var rolePermissionIds = role.Permissions
+            .Select(rolePermission => rolePermission.PermissionId)
+            .Distinct()
+            .ToArray();
 
-            if (permission is null || !permission.IsActive)
+        if (rolePermissionIds.Length == 0)
+        {
+            return;
+        }
+
+        var permissions = await permissionRepository.ListVisibleByOrganizationAndIdsAsync(
+            command.OrganizationId,
+            rolePermissionIds,
+            cancellationToken);
+        var permissionsById = permissions.ToDictionary(permission => permission.Id);
+
+        foreach (var permissionId in rolePermissionIds)
+        {
+            if (!permissionsById.TryGetValue(permissionId, out var permission) || !permission.IsActive)
             {
                 throw new ConflictApplicationException(
                     "role_assignment_permission_inactive",
                     "Role contains an inactive permission and cannot be assigned.");
             }
+        }
 
-            var allowed = await HasGrantablePermissionAsync(actorUserId, command, permission, cancellationToken);
-            if (!allowed)
+        var grantabilityChecks = CreateGrantabilityChecks(actorUserId, command, rolePermissionIds, permissionsById);
+        var grantabilityDecisions = await BatchCheckGrantabilityAsync(
+            grantabilityChecks.SelectMany(check => check.AuthorizationChecks).ToArray(),
+            cancellationToken);
+
+        foreach (var grantabilityCheck in grantabilityChecks)
+        {
+            var targetAllowed = grantabilityDecisions.GetValueOrDefault(grantabilityCheck.TargetCorrelationId);
+            var broaderAllowed = grantabilityCheck.BroaderCorrelationId is not null &&
+                grantabilityDecisions.GetValueOrDefault(grantabilityCheck.BroaderCorrelationId);
+
+            if (!targetAllowed && !broaderAllowed)
             {
-                await TryAuditPrivilegeEscalationDeniedAsync(command.OrganizationId, actorUserId, role.Id, cancellationToken);
+                await PersistPrivilegeEscalationDeniedAuditAsync(command.OrganizationId, actorUserId, role.Id, cancellationToken);
                 throw new ForbiddenApplicationException(
                     "role_assignment_grantability_denied",
                     "Actor cannot assign a role containing permissions they do not possess.");
@@ -232,34 +254,66 @@ public sealed class AssignRoleHandler(
         }
     }
 
-    private async Task<bool> HasGrantablePermissionAsync(
+    private static IReadOnlyList<PermissionGrantabilityCheck> CreateGrantabilityChecks(
         Guid actorUserId,
         AssignRoleCommand command,
-        PermissionDefinition permission,
-        CancellationToken cancellationToken)
+        IReadOnlyList<Guid> rolePermissionIds,
+        IReadOnlyDictionary<Guid, PermissionDefinition> permissionsById)
     {
         var targetScopeProjectId = command.ScopeType == RoleAssignmentScopeType.Project
             ? command.ScopeId
             : (Guid?)null;
-        var targetDecision = await authorizationDecisionService.CheckAsync(
-            new CheckPermissionQuery(actorUserId, command.OrganizationId, targetScopeProjectId, permission.Key),
-            cancellationToken);
 
-        if (targetDecision.Allowed)
+        return rolePermissionIds
+            .Select(permissionId =>
+            {
+                var permission = permissionsById[permissionId];
+                var targetCorrelationId = $"target:{permissionId:N}";
+                var checks = new List<BatchCheckPermissionItem>
+                {
+                    new(targetCorrelationId, actorUserId, command.OrganizationId, targetScopeProjectId, permission.Key)
+                };
+                string? broaderCorrelationId = null;
+
+                if (command.ScopeType == RoleAssignmentScopeType.Project)
+                {
+                    broaderCorrelationId = $"broader:{permissionId:N}";
+                    checks.Add(new BatchCheckPermissionItem(
+                        broaderCorrelationId,
+                        actorUserId,
+                        command.OrganizationId,
+                        null,
+                        permission.Key));
+                }
+
+                return new PermissionGrantabilityCheck(permissionId, targetCorrelationId, broaderCorrelationId, checks);
+            })
+            .ToArray();
+    }
+
+    private async Task<IReadOnlyDictionary<string, bool>> BatchCheckGrantabilityAsync(
+        IReadOnlyList<BatchCheckPermissionItem> checks,
+        CancellationToken cancellationToken)
+    {
+        var decisions = new Dictionary<string, bool>(StringComparer.Ordinal);
+
+        for (var index = 0; index < checks.Count; index += BatchCheckPermissionsQuery.MaxChecks)
         {
-            return true;
+            var chunk = checks
+                .Skip(index)
+                .Take(BatchCheckPermissionsQuery.MaxChecks)
+                .ToArray();
+            var result = await authorizationDecisionService.BatchCheckAsync(
+                new BatchCheckPermissionsQuery(chunk),
+                cancellationToken);
+
+            foreach (var item in result.Items)
+            {
+                decisions[item.CorrelationId] = item.Decision.Allowed;
+            }
         }
 
-        if (command.ScopeType != RoleAssignmentScopeType.Project)
-        {
-            return false;
-        }
-
-        var broaderDecision = await authorizationDecisionService.CheckAsync(
-            new CheckPermissionQuery(actorUserId, command.OrganizationId, null, permission.Key),
-            cancellationToken);
-
-        return broaderDecision.Allowed;
+        return decisions;
     }
 
     private async Task RequirePermissionAsync(
@@ -283,16 +337,24 @@ public sealed class AssignRoleHandler(
         }
     }
 
-    private async Task TryAuditPrivilegeEscalationDeniedAsync(
+    private async Task PersistPrivilegeEscalationDeniedAuditAsync(
         Guid organizationId,
         Guid actorUserId,
         Guid roleId,
         CancellationToken cancellationToken)
     {
+        await using var scope = await transaction.BeginTransactionAsync(cancellationToken);
         await auditWriter.WriteAsync(
             new AuditRecord(organizationId, actorUserId, "role_assignment.privilege_escalation_denied", "Role", roleId, "Failed", clock.UtcNow),
             cancellationToken);
+        await scope.CommitAsync(cancellationToken);
     }
+
+    private sealed record PermissionGrantabilityCheck(
+        Guid PermissionId,
+        string TargetCorrelationId,
+        string? BroaderCorrelationId,
+        IReadOnlyList<BatchCheckPermissionItem> AuthorizationChecks);
 
     private static RoleAssignmentScopeType ToAssignmentScopeType(RoleScopeType roleScopeType)
     {

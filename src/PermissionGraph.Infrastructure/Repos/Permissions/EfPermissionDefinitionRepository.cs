@@ -22,6 +22,25 @@ internal sealed class EfPermissionDefinitionRepository(PermissionGraphDbContext 
                 cancellationToken);
     }
 
+    public async Task<IReadOnlyList<PermissionDefinition>> ListVisibleByOrganizationAndIdsAsync(
+        Guid organizationId,
+        IReadOnlyCollection<Guid> permissionIds,
+        CancellationToken cancellationToken)
+    {
+        if (permissionIds.Count == 0)
+        {
+            return [];
+        }
+
+        return await dbContext.PermissionDefinitions
+            .AsNoTracking()
+            .Where(permission =>
+                permissionIds.Contains(permission.Id) &&
+                (permission.PermissionType == PermissionType.Platform ||
+                    permission.OrganizationId == organizationId))
+            .ToListAsync(cancellationToken);
+    }
+
     public Task<PermissionDefinition?> GetOrganizationCustomByIdAsync(
         Guid organizationId,
         Guid permissionId,

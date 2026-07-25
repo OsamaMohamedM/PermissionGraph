@@ -143,7 +143,8 @@ public sealed class M07RoleAssignmentApplicationTests
         await act.Should().ThrowAsync<ForbiddenApplicationException>()
             .Where(exception => exception.ErrorCode == "role_assignment_self_assignment_denied");
         fixture.Audit.Records.Should().Contain(record => record.Action == "role_assignment.privilege_escalation_denied");
-        fixture.Transaction.CommitCalls.Should().Be(0);
+        fixture.Assignments.Items.Should().BeEmpty();
+        fixture.Transaction.CommitCalls.Should().Be(1);
     }
 
     [Fact]
@@ -158,6 +159,11 @@ public sealed class M07RoleAssignmentApplicationTests
 
         await act.Should().ThrowAsync<ForbiddenApplicationException>()
             .Where(exception => exception.ErrorCode == "role_assignment_grantability_denied");
+        fixture.Audit.Records.Should().Contain(record => record.Action == "role_assignment.privilege_escalation_denied");
+        fixture.Assignments.Items.Should().BeEmpty();
+        fixture.Permissions.BatchVisibleLookupCalls.Should().Be(1);
+        fixture.Authorization.BatchQueries.Should().ContainSingle();
+        fixture.Transaction.CommitCalls.Should().Be(1);
     }
 
     [Fact]
@@ -172,6 +178,32 @@ public sealed class M07RoleAssignmentApplicationTests
             CancellationToken.None);
 
         result.Id.Should().Be(AssignmentId);
+        fixture.Permissions.BatchVisibleLookupCalls.Should().Be(1);
+        fixture.Authorization.CheckQueries.Should().ContainSingle(query => query.PermissionKey == "pg.roles.assign");
+        fixture.Authorization.BatchQueries.Should().ContainSingle();
+        fixture.Authorization.BatchQueries.Single().Checks.Should().ContainSingle(item => item.PermissionKey == "documents.manage");
+        fixture.Transaction.CommitCalls.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task NonOwnerAssigningProjectRoleWithinOwnPermissionsUsesBatchGrantability()
+    {
+        var fixture = new Fixture(currentUserId: ActorId);
+        fixture.Authorization.Allow("pg.roles.assign");
+        fixture.Authorization.Allow("documents.review");
+
+        var result = await fixture.Assign.HandleAsync(
+            new AssignRoleCommand(OrganizationId, TargetUserId, ProjectRoleId, RoleAssignmentScopeType.Project, ProjectId, Now, null, "Grant project access"),
+            CancellationToken.None);
+
+        result.Id.Should().Be(AssignmentId);
+        result.ScopeType.Should().Be(RoleAssignmentScopeType.Project);
+        fixture.Permissions.BatchVisibleLookupCalls.Should().Be(1);
+        fixture.Authorization.CheckQueries.Should().ContainSingle(query => query.PermissionKey == "pg.roles.assign" && query.ProjectId == ProjectId);
+        fixture.Authorization.BatchQueries.Should().ContainSingle();
+        fixture.Authorization.BatchQueries.Single().Checks.Should().HaveCount(2);
+        fixture.Authorization.BatchQueries.Single().Checks.Should().Contain(item => item.PermissionKey == "documents.review" && item.ProjectId == ProjectId);
+        fixture.Authorization.BatchQueries.Single().Checks.Should().Contain(item => item.PermissionKey == "documents.review" && item.ProjectId == null);
     }
 
     [Fact]
@@ -649,6 +681,7 @@ public sealed class M07RoleAssignmentApplicationTests
     private sealed class FakePermissionRepository : IPermissionDefinitionRepository
     {
         public List<PermissionDefinition> Items { get; } = [];
+        public int BatchVisibleLookupCalls { get; private set; }
 
         public Task AddAsync(PermissionDefinition permission, CancellationToken cancellationToken)
         {
@@ -659,6 +692,16 @@ public sealed class M07RoleAssignmentApplicationTests
         public Task<PermissionDefinition?> GetVisibleByOrganizationAndIdAsync(Guid organizationId, Guid permissionId, CancellationToken cancellationToken)
         {
             return Task.FromResult(Items.SingleOrDefault(item => item.Id == permissionId && (item.PermissionType == PermissionType.Platform || item.OrganizationId == organizationId)));
+        }
+
+        public Task<IReadOnlyList<PermissionDefinition>> ListVisibleByOrganizationAndIdsAsync(Guid organizationId, IReadOnlyCollection<Guid> permissionIds, CancellationToken cancellationToken)
+        {
+            BatchVisibleLookupCalls++;
+            return Task.FromResult<IReadOnlyList<PermissionDefinition>>(Items
+                .Where(item =>
+                    permissionIds.Contains(item.Id) &&
+                    (item.PermissionType == PermissionType.Platform || item.OrganizationId == organizationId))
+                .ToArray());
         }
 
         public Task<PermissionDefinition?> GetOrganizationCustomByIdAsync(Guid organizationId, Guid permissionId, CancellationToken cancellationToken)
@@ -752,6 +795,9 @@ public sealed class M07RoleAssignmentApplicationTests
     {
         private readonly HashSet<string> _allowedPermissions = new(StringComparer.Ordinal);
 
+        public List<CheckPermissionQuery> CheckQueries { get; } = [];
+        public List<BatchCheckPermissionsQuery> BatchQueries { get; } = [];
+
         public void Allow(string permissionKey)
         {
             _allowedPermissions.Add(permissionKey);
@@ -759,6 +805,7 @@ public sealed class M07RoleAssignmentApplicationTests
 
         public Task<AuthorizationDecision> CheckAsync(CheckPermissionQuery query, CancellationToken cancellationToken)
         {
+            CheckQueries.Add(query);
             var decision = _allowedPermissions.Contains(query.PermissionKey)
                 ? AuthorizationDecision.Allow(AuthorizationReasonCode.AllowedOwnerOverride, Now)
                 : AuthorizationDecision.Deny(AuthorizationReasonCode.DeniedNoApplicableGrant, Now);
@@ -767,7 +814,18 @@ public sealed class M07RoleAssignmentApplicationTests
 
         public Task<BatchAuthorizationDecisionResult> BatchCheckAsync(BatchCheckPermissionsQuery query, CancellationToken cancellationToken)
         {
-            return Task.FromResult(new BatchAuthorizationDecisionResult([]));
+            BatchQueries.Add(query);
+            var decisions = query.OrderedChecks
+                .Select((item, index) =>
+                {
+                    var decision = _allowedPermissions.Contains(item.PermissionKey)
+                        ? AuthorizationDecision.Allow(AuthorizationReasonCode.AllowedOwnerOverride, Now)
+                        : AuthorizationDecision.Deny(AuthorizationReasonCode.DeniedNoApplicableGrant, Now);
+                    return new BatchAuthorizationDecision(item.CorrelationId, index, decision);
+                })
+                .ToArray();
+
+            return Task.FromResult(new BatchAuthorizationDecisionResult(decisions));
         }
     }
 

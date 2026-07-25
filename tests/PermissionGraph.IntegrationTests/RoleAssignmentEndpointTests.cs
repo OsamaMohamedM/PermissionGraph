@@ -160,6 +160,47 @@ public sealed class RoleAssignmentEndpointTests : IAsyncLifetime
         crossTenantRole.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
+    [Fact]
+    public async Task NonOwnerSelfAssignmentDenialPersistsAuditWithoutCreatingForbiddenAssignment()
+    {
+        using var factory = await CreateMigratedFactoryAsync();
+        using var client = factory.CreateClient();
+        var owner = await RegisterAndAuthorizeAsync(client, "assignment-audit-owner@example.test");
+        var member = await RegisterAndAuthorizeAsync(client, "assignment-audit-member@example.test");
+
+        await AuthorizeAsync(client, owner.Email);
+        var organization = await CreateOrganizationAsync(client, "Assignment Audit Org");
+        await AddMemberAsync(client, organization.Id, member.Email);
+        var assignPermission = await PlatformPermissionAsync(factory, "pg.roles.assign");
+        var grantRole = await CreateRoleAsync(client, organization.Id, "Assignment Delegates", "Organization", [assignPermission.Id]);
+        var targetPermission = await CreatePermissionAsync(client, organization.Id, "documents.audit.review", "Organization");
+        var targetRole = await CreateRoleAsync(client, organization.Id, "Audit Reviewers", "Organization", [targetPermission.Id]);
+        await CreateAssignmentAsync(client, organization.Id, member.UserId, grantRole.Id, "Organization", organization.Id);
+
+        await AuthorizeAsync(client, member.Email);
+        var denied = await client.PostAsJsonAsync(
+            $"/api/v1/organizations/{organization.Id}/role-assignments",
+            AssignRequest(member.UserId, targetRole.Id, "Organization", organization.Id));
+
+        denied.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+
+        await using var scope = factory.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<PermissionGraphDbContext>();
+        var forbiddenAssignments = await dbContext.RoleAssignments.CountAsync(item =>
+            item.OrganizationId == organization.Id &&
+            item.UserId == member.UserId &&
+            item.RoleId == targetRole.Id);
+        var auditCount = await dbContext.AuditLogs.CountAsync(item =>
+            item.OrganizationId == organization.Id &&
+            item.ActorUserId == member.UserId &&
+            item.Action == "role_assignment.privilege_escalation_denied" &&
+            item.TargetId == targetRole.Id &&
+            item.Result == "Failed");
+
+        forbiddenAssignments.Should().Be(0);
+        auditCount.Should().BeGreaterThan(0);
+    }
+
     private async Task<PermissionGraphApiFactory> CreateMigratedFactoryAsync()
     {
         var factory = new PermissionGraphApiFactory(
@@ -254,6 +295,29 @@ public sealed class RoleAssignmentEndpointTests : IAsyncLifetime
             AssignRequest(userId, roleId, scopeType, scopeId));
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         return (await response.Content.ReadFromJsonAsync<RoleAssignmentResponse>())!;
+    }
+
+    private static async Task<PermissionResponse> PlatformPermissionAsync(PermissionGraphApiFactory factory, string key)
+    {
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<PermissionGraphDbContext>();
+        var permission = await dbContext.PermissionDefinitions
+            .AsNoTracking()
+            .SingleAsync(item => item.OrganizationId == null && item.Key == key);
+        return new PermissionResponse(
+            permission.Id,
+            permission.OrganizationId,
+            permission.Key,
+            permission.DisplayName,
+            permission.Description,
+            permission.Module,
+            permission.PermissionType.ToString(),
+            permission.AllowedScopes.ToString(),
+            permission.IsRequestable,
+            permission.IsActive,
+            permission.CreatedAtUtc,
+            permission.UpdatedAtUtc,
+            permission.ArchivedAtUtc);
     }
 
     private static AssignRoleRequest AssignRequest(

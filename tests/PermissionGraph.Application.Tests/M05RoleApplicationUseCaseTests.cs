@@ -695,6 +695,15 @@ public sealed class M05RoleApplicationUseCaseTests
                 (item.PermissionType == PermissionType.Platform || item.OrganizationId == organizationId)));
         }
 
+        public Task<IReadOnlyList<PermissionDefinition>> ListVisibleByOrganizationAndIdsAsync(Guid organizationId, IReadOnlyCollection<Guid> permissionIds, CancellationToken cancellationToken)
+        {
+            return Task.FromResult<IReadOnlyList<PermissionDefinition>>(Items
+                .Where(item =>
+                    permissionIds.Contains(item.Id) &&
+                    (item.PermissionType == PermissionType.Platform || item.OrganizationId == organizationId))
+                .ToArray());
+        }
+
         public Task<PermissionDefinition?> GetOrganizationCustomByIdAsync(Guid organizationId, Guid permissionId, CancellationToken cancellationToken)
         {
             return Task.FromResult(Items.SingleOrDefault(item => item.Id == permissionId && item.PermissionType == PermissionType.Custom && item.OrganizationId == organizationId));

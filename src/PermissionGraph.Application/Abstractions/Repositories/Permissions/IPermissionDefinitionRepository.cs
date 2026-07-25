@@ -9,6 +9,11 @@ public interface IPermissionDefinitionRepository
         Guid permissionId,
         CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<PermissionDefinition>> ListVisibleByOrganizationAndIdsAsync(
+        Guid organizationId,
+        IReadOnlyCollection<Guid> permissionIds,
+        CancellationToken cancellationToken);
+
     Task<PermissionDefinition?> GetOrganizationCustomByIdAsync(
         Guid organizationId,
         Guid permissionId,

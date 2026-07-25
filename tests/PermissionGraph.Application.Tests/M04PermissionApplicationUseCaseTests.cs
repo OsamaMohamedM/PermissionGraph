@@ -554,6 +554,15 @@ public sealed class M04PermissionApplicationUseCaseTests
                 (item.PermissionType == PermissionType.Platform || item.OrganizationId == organizationId)));
         }
 
+        public Task<IReadOnlyList<PermissionDefinition>> ListVisibleByOrganizationAndIdsAsync(Guid organizationId, IReadOnlyCollection<Guid> permissionIds, CancellationToken cancellationToken)
+        {
+            return Task.FromResult<IReadOnlyList<PermissionDefinition>>(Items
+                .Where(item =>
+                    permissionIds.Contains(item.Id) &&
+                    (item.PermissionType == PermissionType.Platform || item.OrganizationId == organizationId))
+                .ToArray());
+        }
+
         public Task<PermissionDefinition?> GetOrganizationCustomByIdAsync(Guid organizationId, Guid permissionId, CancellationToken cancellationToken)
         {
             CustomGetCalls.Add((organizationId, permissionId));
