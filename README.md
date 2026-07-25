@@ -5,7 +5,7 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16.4-336791)
 ![Redis](https://img.shields.io/badge/Redis-7.4-DC382D)
 ![Clean Architecture](https://img.shields.io/badge/Architecture-Clean%20Architecture-2F855A)
-![Tests](https://img.shields.io/badge/Tests-381%20passing-2F855A)
+![Tests](https://img.shields.io/badge/Tests-verify%20with%20dotnet%20test-2F855A)
 
 A multi-tenant authorization and access-control platform built with ASP.NET Core, Clean Architecture, PostgreSQL, Redis, and policy-based authorization.
 
@@ -60,6 +60,7 @@ flowchart LR
 | FR05 - Roles | System roles, custom roles, create/list/get/update/clone/archive/activate, role-permission replacement, protected system roles, scope compatibility, policy-version updates, optimistic concurrency. |
 | FR06 - Authorization Engine | `IAuthorizationDecisionService`, single and batch checks, ASP.NET Core permission policies, owner override, active membership and role-permission path, stable reason codes, default deny. |
 | FR07 - Role Assignments & Temporary Access | Organization/project role assignments, scheduled and temporary access, revoke/list/get, authorization-version invalidation, versioned Redis cache keys, expiration-aware cache TTL, expiration worker. |
+| FR09 - Explain Access | Safe explanation endpoint for own and authorized other-user access decisions, normal-decision consistency, step output, matched path details, validation, rate limiting, and audit for other-user inspection. |
 
 ## Main Features
 
@@ -118,8 +119,19 @@ flowchart LR
 - Stable reason codes such as `ALLOWED_OWNER_OVERRIDE`, `ALLOWED_ROLE_PERMISSION_MATCH`, and `DENIED_NO_APPLICABLE_GRANT`.
 - Single permission check.
 - Batch permission check.
+- Authorized other-user checks.
 - ASP.NET Core dynamic permission policies.
 - Endpoint-level permission enforcement for protected mutations.
+
+### Explain Access
+
+- `POST /authorization/explain` returns the normal authorization decision plus safe explanation details.
+- Self-explanation is available for the authenticated actor.
+- Other-user explanation requires owner status or `pg.authorization.explain_others`.
+- Other-user explanation attempts are audited.
+- Responses include ordered steps, a summary, and matched path details when access is allowed.
+- Historical-time explanation is rejected by validation.
+- The endpoint has its own rate-limit policy.
 
 ### Role Assignments
 
@@ -145,7 +157,7 @@ flowchart LR
 - Application tests for handlers, validation, grantability, audit/version behavior, and authorization decisions.
 - Architecture tests enforcing Clean Architecture dependency rules.
 - Integration tests using real PostgreSQL and Redis via Testcontainers.
-- Latest documented FR07 validation: `381` tests passed with `dotnet test PermissionGraph.slnx -c Release --no-build`.
+- Run `dotnet test PermissionGraph.slnx -c Release` to verify the current test suite.
 
 ## Authorization Decision Flow
 
@@ -160,7 +172,7 @@ Current evaluation order is based on `AuthorizationDecisionService`:
 7. Validate permission exists, is active, and is visible in the organization.
 8. Validate project exists, is active, and belongs to the route organization when supplied.
 9. Enforce permission scope compatibility.
-10. Restrict other-user checks to the organization owner.
+10. Restrict other-user checks to the organization owner or an actor with `pg.authorization.explain_others`.
 11. Require active membership unless the subject is the organization owner.
 12. Check owner override.
 13. Check effective role-assignment permission path.
@@ -334,6 +346,7 @@ Base path: `/api/v1`
 
 - `POST /organizations/{organizationId}/authorization/check`
 - `POST /organizations/{organizationId}/authorization/batch-check`
+- `POST /organizations/{organizationId}/authorization/explain`
 
 ### Role Assignments
 
@@ -410,18 +423,10 @@ Redis authorization decision caching is implemented as a performance optimizatio
 | Architecture Tests | Clean Architecture dependency rules and forbidden dependency checks. |
 | Integration Tests | API, PostgreSQL, Redis, EF mappings, migrations, tenant isolation, authorization behavior, and Testcontainers-backed infrastructure. |
 
-Latest documented full test result:
+Run the full suite before release:
 
 ```powershell
-dotnet test PermissionGraph.slnx -c Release --no-build
-```
-
-```text
-381 tests passed
-Domain: 140
-Application: 108
-Architecture: 10
-Integration: 123
+dotnet test PermissionGraph.slnx -c Release
 ```
 
 ## Getting Started
@@ -481,12 +486,6 @@ OpenAPI is mapped in Development through ASP.NET Core OpenAPI.
 dotnet test PermissionGraph.slnx -c Release
 ```
 
-For the documented FR07 verification path after a successful Release build:
-
-```powershell
-dotnet test PermissionGraph.slnx -c Release --no-build
-```
-
 ## Example Authorization Scenario
 
 1. Register and log in as Alice.
@@ -514,10 +513,10 @@ dotnet test PermissionGraph.slnx -c Release --no-build
 - FR05 - Roles.
 - FR06 - Authorization Engine.
 - FR07 - Role Assignments & Temporary Access.
+- FR09 - Explain Access.
 
 ### Upcoming
 
-- Explain Access is planned/in discovery. The current backend exposes authorization check and batch-check endpoints, but not the full explain endpoint or trace model.
 - Frontend Admin/User portal is planned separately.
 - Optional DirectPermissionGrant support may be reconsidered later, but it is not currently implemented.
 
@@ -555,7 +554,7 @@ PermissionGraph/
   README.md
 ```
 
-## What I Learned / Engineering Highlights
+## Engineering Highlights
 
 - Designing an authorization engine that separates authentication from domain authorization.
 - Modeling multi-tenant boundaries and resource scopes.
