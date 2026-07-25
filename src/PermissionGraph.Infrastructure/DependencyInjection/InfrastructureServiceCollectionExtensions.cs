@@ -54,6 +54,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IProjectRepository, EfProjectRepository>();
         services.AddScoped<IProjectAdministratorAssignmentService, EfProjectAdministratorAssignmentService>();
         services.AddScoped<IAuthorizationReadService, EfAuthorizationReadService>();
+        services.AddScoped<IAccessExplanationReadService, EfAccessExplanationReadService>();
         services.AddScoped<IAuthorizationDecisionCache, RedisAuthorizationDecisionCache>();
         services.AddScoped<IUserAccountLookup, IdentityUserAccountLookup>();
         services.AddScoped<IRecentAuthenticationVerifier, IdentityRecentAuthenticationVerifier>();
