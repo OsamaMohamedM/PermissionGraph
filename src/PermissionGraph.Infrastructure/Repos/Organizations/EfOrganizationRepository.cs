@@ -25,7 +25,21 @@ internal sealed class EfOrganizationRepository(PermissionGraphDbContext dbContex
 
         if (Guid.TryParse(cursor, out var cursorId))
         {
-            query = query.Where(organization => organization.Id != cursorId);
+            var cursorBoundary = await query
+                .Where(organization => organization.Id == cursorId)
+                .Select(organization => new
+                {
+                    organization.CreatedAtUtc,
+                    organization.Id
+                })
+                .SingleOrDefaultAsync(cancellationToken);
+
+            if (cursorBoundary is not null)
+            {
+                query = query.Where(organization =>
+                    organization.CreatedAtUtc > cursorBoundary.CreatedAtUtc ||
+                    (organization.CreatedAtUtc == cursorBoundary.CreatedAtUtc && organization.Id.CompareTo(cursorBoundary.Id) > 0));
+            }
         }
 
         var items = await query
@@ -33,7 +47,7 @@ internal sealed class EfOrganizationRepository(PermissionGraphDbContext dbContex
             .ThenBy(organization => organization.Id)
             .Take(pageSize + 1)
             .ToListAsync(cancellationToken);
-        var nextCursor = items.Count > pageSize ? items[^1].Id.ToString() : null;
+        var nextCursor = items.Count > pageSize ? items[pageSize - 1].Id.ToString() : null;
 
         return new PagedResult<Organization>(items.Take(pageSize).ToArray(), nextCursor);
     }

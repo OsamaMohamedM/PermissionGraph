@@ -59,7 +59,21 @@ internal sealed class EfOrganizationMembershipRepository(PermissionGraphDbContex
 
         if (Guid.TryParse(cursor, out var cursorId))
         {
-            query = query.Where(item => item.membership.Id != cursorId);
+            var cursorBoundary = await query
+                .Where(item => item.membership.Id == cursorId)
+                .Select(item => new
+                {
+                    item.membership.JoinedAtUtc,
+                    item.membership.Id
+                })
+                .SingleOrDefaultAsync(cancellationToken);
+
+            if (cursorBoundary is not null)
+            {
+                query = query.Where(item =>
+                    item.membership.JoinedAtUtc > cursorBoundary.JoinedAtUtc ||
+                    (item.membership.JoinedAtUtc == cursorBoundary.JoinedAtUtc && item.membership.Id.CompareTo(cursorBoundary.Id) > 0));
+            }
         }
 
         var items = await query
@@ -80,7 +94,7 @@ internal sealed class EfOrganizationMembershipRepository(PermissionGraphDbContex
                 item.membership.Version))
             .ToListAsync(cancellationToken);
 
-        var nextCursor = items.Count > pageSize ? items[^1].MembershipId.ToString() : null;
+        var nextCursor = items.Count > pageSize ? items[pageSize - 1].MembershipId.ToString() : null;
         return new PagedResult<OrganizationMemberResult>(items.Take(pageSize).ToArray(), nextCursor);
     }
 

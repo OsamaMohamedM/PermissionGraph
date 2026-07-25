@@ -98,6 +98,38 @@ public sealed class OrganizationEndpointTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task ListOrganizations_CursorUsesStableBoundaryWithoutOverlapOrSkippedRecords()
+    {
+        using var factory = await CreateMigratedFactoryAsync();
+        using var client = factory.CreateClient();
+        await RegisterAndAuthorizeAsync(client, "org-cursor-owner@example.test");
+        var first = await CreateOrganizationAsync(client, "Cursor Org A");
+        var second = await CreateOrganizationAsync(client, "Cursor Org B");
+        var third = await CreateOrganizationAsync(client, "Cursor Org C");
+
+        var pageOne = await client.GetFromJsonAsync<OrganizationListResponse>("/api/v1/organizations?pageSize=2");
+        pageOne.Should().NotBeNull();
+        pageOne!.Items.Should().HaveCount(2);
+        pageOne.NextCursor.Should().Be(pageOne.Items[^1].Id.ToString());
+
+        var pageTwo = await client.GetFromJsonAsync<OrganizationListResponse>($"/api/v1/organizations?pageSize=2&cursor={pageOne.NextCursor}");
+        pageTwo.Should().NotBeNull();
+        pageTwo!.Items.Should().ContainSingle();
+        pageTwo.NextCursor.Should().BeNull();
+
+        var pageOneIds = pageOne.Items.Select(item => item.Id).ToArray();
+        var pageTwoIds = pageTwo.Items.Select(item => item.Id).ToArray();
+        var combinedItems = pageOne.Items.Concat(pageTwo.Items).ToArray();
+        pageOneIds.Should().NotIntersectWith(pageTwoIds);
+        combinedItems.Select(item => item.Id).Should().BeEquivalentTo([first.Id, second.Id, third.Id]);
+        combinedItems.Select(item => item.Id).Should().Equal(
+            combinedItems
+                .OrderBy(item => item.CreatedAtUtc)
+                .ThenBy(item => item.Id)
+                .Select(item => item.Id));
+    }
+
+    [Fact]
     public async Task CrossTenantOrganizationAccessHelper_ReturnsSafeNotFound()
     {
         using var factory = await CreateMigratedFactoryAsync();
@@ -199,6 +231,50 @@ public sealed class OrganizationEndpointTests : IAsyncLifetime
         await AuthorizeAsync(client, member.Email);
         var removedAccess = await client.GetAsync($"/api/v1/organizations/{organization.Id}");
         removedAccess.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task ListMembers_CursorUsesStableBoundaryWithoutOverlapOrSkippedRecords()
+    {
+        using var factory = await CreateMigratedFactoryAsync();
+        using var client = factory.CreateClient();
+        var owner = await RegisterAndAuthorizeAsync(client, "member-cursor-owner@example.test");
+        var firstMember = await RegisterAndAuthorizeAsync(client, "member-cursor-one@example.test");
+        var secondMember = await RegisterAndAuthorizeAsync(client, "member-cursor-two@example.test");
+        var thirdMember = await RegisterAndAuthorizeAsync(client, "member-cursor-three@example.test");
+
+        await AuthorizeAsync(client, owner.Email);
+        var organization = await CreateOrganizationAsync(client, "Member Cursor Org");
+        await AddMemberAsync(client, organization.Id, firstMember.Email);
+        await AddMemberAsync(client, organization.Id, secondMember.Email);
+        await AddMemberAsync(client, organization.Id, thirdMember.Email);
+
+        var pageOne = await client.GetFromJsonAsync<OrganizationMemberListResponse>($"/api/v1/organizations/{organization.Id}/members?pageSize=2");
+        pageOne.Should().NotBeNull();
+        pageOne!.Items.Should().HaveCount(2);
+        pageOne.NextCursor.Should().Be(pageOne.Items[^1].MembershipId.ToString());
+
+        var pageTwo = await client.GetFromJsonAsync<OrganizationMemberListResponse>($"/api/v1/organizations/{organization.Id}/members?pageSize=2&cursor={pageOne.NextCursor}");
+        pageTwo.Should().NotBeNull();
+        pageTwo!.Items.Should().HaveCount(2);
+        pageTwo.NextCursor.Should().BeNull();
+
+        var pageOneIds = pageOne.Items.Select(item => item.MembershipId).ToArray();
+        var pageTwoIds = pageTwo.Items.Select(item => item.MembershipId).ToArray();
+        var combinedItems = pageOne.Items.Concat(pageTwo.Items).ToArray();
+        pageOneIds.Should().NotIntersectWith(pageTwoIds);
+        combinedItems.Select(item => item.UserId).Should().BeEquivalentTo(
+        [
+            owner.UserId,
+            firstMember.UserId,
+            secondMember.UserId,
+            thirdMember.UserId
+        ]);
+        combinedItems.Select(item => item.MembershipId).Should().Equal(
+            combinedItems
+                .OrderBy(item => item.JoinedAtUtc)
+                .ThenBy(item => item.MembershipId)
+                .Select(item => item.MembershipId));
     }
 
     [Fact]
@@ -434,6 +510,12 @@ public sealed class OrganizationEndpointTests : IAsyncLifetime
         var response = await client.PostAsJsonAsync("/api/v1/organizations", new CreateOrganizationRequest(name, null));
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         return (await response.Content.ReadFromJsonAsync<OrganizationResponse>())!;
+    }
+
+    private static async Task AddMemberAsync(HttpClient client, Guid organizationId, string email)
+    {
+        var response = await client.PostAsJsonAsync($"/api/v1/organizations/{organizationId}/members", new AddOrganizationMemberRequest(email));
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
     }
 
     private static async Task<JsonDocument> AssertProblemAsync(HttpResponseMessage response, string title)
