@@ -41,9 +41,13 @@ public sealed class AuthorizationEndpointTests : IAsyncLifetime
             new AuthorizationBatchCheckRequest([
                 new AuthorizationBatchCheckItemRequest("one", null, null, "pg.projects.view")
             ]));
+        var explain = await client.PostAsJsonAsync(
+            $"/api/v1/organizations/{organizationId}/authorization/explain",
+            new ExplainAccessRequest(null, null, "pg.projects.view", null));
 
         check.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         batch.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        explain.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
@@ -134,6 +138,138 @@ public sealed class AuthorizationEndpointTests : IAsyncLifetime
         await AssertProblemAsync(response, "Access is forbidden.");
     }
 
+    [Fact]
+    public async Task ExplainSelfMatchesPublicCheckAndReturnsSafeSteps()
+    {
+        using var factory = await CreateMigratedFactoryAsync();
+        using var client = factory.CreateClient();
+        var owner = await RegisterAndAuthorizeAsync(client, "explain-owner@example.test");
+        var member = await RegisterAndAuthorizeAsync(client, "explain-member@example.test");
+
+        await AuthorizeAsync(client, owner.Email);
+        var organization = await CreateOrganizationAsync(client, "Explain Self Org");
+        await AddMemberAsync(client, organization.Id, member.Email);
+        var permission = await CreatePermissionAsync(client, organization.Id, "documents.review", "Organization");
+        var checkPermission = await PlatformPermissionAsync(factory, "pg.authorization.check");
+        var role = await CreateRoleAsync(client, organization.Id, "Document Reviewers", "Organization", [permission.Id, checkPermission.Id]);
+        await CreateAssignmentAsync(client, organization.Id, member.UserId, role.Id, "Organization", organization.Id);
+
+        await AuthorizeAsync(client, member.Email);
+        var check = await client.PostAsJsonAsync(
+            $"/api/v1/organizations/{organization.Id}/authorization/check",
+            new AuthorizationCheckRequest(null, null, "documents.review"));
+        var explain = await client.PostAsJsonAsync(
+            $"/api/v1/organizations/{organization.Id}/authorization/explain",
+            new ExplainAccessRequest(null, null, "documents.review", null));
+
+        check.StatusCode.Should().Be(HttpStatusCode.OK);
+        explain.StatusCode.Should().Be(HttpStatusCode.OK);
+        var decision = (await check.Content.ReadFromJsonAsync<AuthorizationDecisionResponse>())!;
+        var explanation = (await explain.Content.ReadFromJsonAsync<ExplainAccessResponse>())!;
+        explanation.Allowed.Should().Be(decision.Allowed);
+        explanation.ReasonCode.Should().Be(decision.ReasonCode);
+        explanation.MatchedPath?.Type.Should().Be("RoleAssignment");
+        explanation.Steps.Should().Contain(step => step.Code == "FINAL_DECISION");
+        explanation.Steps.SelectMany(step => step.Details.Keys).Should().NotContain(key => key.Contains("cache", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task OwnerExplainOtherSucceedsAndWritesAuditButNonOwnerIsForbidden()
+    {
+        using var factory = await CreateMigratedFactoryAsync();
+        using var client = factory.CreateClient();
+        var owner = await RegisterAndAuthorizeAsync(client, "explain-other-owner@example.test");
+        var member = await RegisterAndAuthorizeAsync(client, "explain-other-member@example.test");
+        var outsider = await RegisterAndAuthorizeAsync(client, "explain-other-outsider@example.test");
+
+        await AuthorizeAsync(client, owner.Email);
+        var organization = await CreateOrganizationAsync(client, "Explain Other Org");
+        await AddMemberAsync(client, organization.Id, member.Email);
+        await AddMemberAsync(client, organization.Id, outsider.Email);
+
+        var ownerExplain = await client.PostAsJsonAsync(
+            $"/api/v1/organizations/{organization.Id}/authorization/explain",
+            new ExplainAccessRequest(member.UserId, null, "pg.projects.view", null));
+
+        ownerExplain.StatusCode.Should().Be(HttpStatusCode.OK);
+        var explanation = (await ownerExplain.Content.ReadFromJsonAsync<ExplainAccessResponse>())!;
+        explanation.SubjectUserId.Should().Be(member.UserId);
+        explanation.ActorUserId.Should().Be(owner.UserId);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<PermissionGraphDbContext>();
+            var auditCount = await dbContext.AuditLogs
+                .CountAsync(item =>
+                    item.OrganizationId == organization.Id &&
+                    item.ActorUserId == owner.UserId &&
+                    item.Action == "authorization.explain_other" &&
+                    item.TargetId == member.UserId);
+            auditCount.Should().BeGreaterThan(0);
+        }
+
+        await AuthorizeAsync(client, outsider.Email);
+        var forbidden = await client.PostAsJsonAsync(
+            $"/api/v1/organizations/{organization.Id}/authorization/explain",
+            new ExplainAccessRequest(member.UserId, null, "pg.projects.view", null));
+
+        forbidden.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        await AssertProblemAsync(forbidden, "Actor is not allowed to explain another user's access.");
+    }
+
+    [Fact]
+    public async Task DelegatedExplainOthersCanCheckAndExplainOtherUsersConsistently()
+    {
+        using var factory = await CreateMigratedFactoryAsync();
+        using var client = factory.CreateClient();
+        var owner = await RegisterAndAuthorizeAsync(client, "delegated-explain-owner@example.test");
+        var subject = await RegisterAndAuthorizeAsync(client, "delegated-explain-subject@example.test");
+        var delegated = await RegisterAndAuthorizeAsync(client, "delegated-explain-admin@example.test");
+
+        await AuthorizeAsync(client, owner.Email);
+        var organization = await CreateOrganizationAsync(client, "Delegated Explain Org");
+        await AddMemberAsync(client, organization.Id, subject.Email);
+        await AddMemberAsync(client, organization.Id, delegated.Email);
+        var checkPermission = await PlatformPermissionAsync(factory, "pg.authorization.check");
+        var explainOthers = await PlatformPermissionAsync(factory, "pg.authorization.explain_others");
+        var role = await CreateRoleAsync(client, organization.Id, "Delegated Explainers", "Organization", [checkPermission.Id, explainOthers.Id]);
+        await CreateAssignmentAsync(client, organization.Id, delegated.UserId, role.Id, "Organization", organization.Id);
+
+        await AuthorizeAsync(client, delegated.Email);
+        var check = await client.PostAsJsonAsync(
+            $"/api/v1/organizations/{organization.Id}/authorization/check",
+            new AuthorizationCheckRequest(subject.UserId, null, "pg.projects.view"));
+        var explain = await client.PostAsJsonAsync(
+            $"/api/v1/organizations/{organization.Id}/authorization/explain",
+            new ExplainAccessRequest(subject.UserId, null, "pg.projects.view", null));
+
+        check.StatusCode.Should().Be(HttpStatusCode.OK);
+        explain.StatusCode.Should().Be(HttpStatusCode.OK);
+        var decision = (await check.Content.ReadFromJsonAsync<AuthorizationDecisionResponse>())!;
+        var explanation = (await explain.Content.ReadFromJsonAsync<ExplainAccessResponse>())!;
+        decision.ReasonCode.Should().NotBe(AuthorizationReasonCode.DeniedCheckOtherUsersNotAllowed);
+        explanation.Allowed.Should().Be(decision.Allowed);
+        explanation.ReasonCode.Should().Be(decision.ReasonCode);
+        explanation.ActorUserId.Should().Be(delegated.UserId);
+        explanation.SubjectUserId.Should().Be(subject.UserId);
+    }
+
+    [Fact]
+    public async Task ExplainValidationErrorsUseProblemDetails()
+    {
+        using var factory = await CreateMigratedFactoryAsync();
+        using var client = factory.CreateClient();
+        await RegisterAndAuthorizeAsync(client, "explain-validation@example.test");
+        var organization = await CreateOrganizationAsync(client, "Explain Validation Org");
+
+        var invalid = await client.PostAsJsonAsync(
+            $"/api/v1/organizations/{organization.Id}/authorization/explain",
+            new ExplainAccessRequest(null, Guid.Empty, "not valid", DateTimeOffset.UtcNow.AddMinutes(-1)));
+
+        invalid.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        await AssertProblemAsync(invalid, "Request validation failed.");
+    }
+
     private async Task<PermissionGraphApiFactory> CreateMigratedFactoryAsync()
     {
         var factory = new PermissionGraphApiFactory(
@@ -184,6 +320,78 @@ public sealed class AuthorizationEndpointTests : IAsyncLifetime
     {
         var response = await client.PostAsJsonAsync($"/api/v1/organizations/{organizationId}/members", new AddOrganizationMemberRequest(email));
         response.StatusCode.Should().Be(HttpStatusCode.Created);
+    }
+
+    private static async Task<PermissionResponse> CreatePermissionAsync(
+        HttpClient client,
+        Guid organizationId,
+        string key,
+        string allowedScopes)
+    {
+        var response = await client.PostAsJsonAsync(
+            $"/api/v1/organizations/{organizationId}/permissions",
+            new CreateCustomPermissionRequest(key, "Document permission", null, "Documents", allowedScopes, true));
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        return (await response.Content.ReadFromJsonAsync<PermissionResponse>())!;
+    }
+
+    private static async Task<RoleResponse> CreateRoleAsync(
+        HttpClient client,
+        Guid organizationId,
+        string name,
+        string scopeType,
+        IReadOnlyCollection<Guid> permissionIds)
+    {
+        var response = await client.PostAsJsonAsync(
+            $"/api/v1/organizations/{organizationId}/roles",
+            new CreateCustomRoleRequest(name, "Role description.", scopeType, true, permissionIds));
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        return (await response.Content.ReadFromJsonAsync<RoleResponse>())!;
+    }
+
+    private static async Task<RoleAssignmentResponse> CreateAssignmentAsync(
+        HttpClient client,
+        Guid organizationId,
+        Guid userId,
+        Guid roleId,
+        string scopeType,
+        Guid scopeId)
+    {
+        var response = await client.PostAsJsonAsync(
+            $"/api/v1/organizations/{organizationId}/role-assignments",
+            new AssignRoleRequest(
+                userId,
+                roleId,
+                scopeType,
+                scopeId,
+                DateTimeOffset.UtcNow.AddSeconds(-1),
+                null,
+                "Grant access for explanation test."));
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        return (await response.Content.ReadFromJsonAsync<RoleAssignmentResponse>())!;
+    }
+
+    private static async Task<PermissionResponse> PlatformPermissionAsync(PermissionGraphApiFactory factory, string key)
+    {
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<PermissionGraphDbContext>();
+        var permission = await dbContext.PermissionDefinitions
+            .AsNoTracking()
+            .SingleAsync(item => item.OrganizationId == null && item.Key == key);
+        return new PermissionResponse(
+            permission.Id,
+            permission.OrganizationId,
+            permission.Key,
+            permission.DisplayName,
+            permission.Description,
+            permission.Module,
+            permission.PermissionType.ToString(),
+            permission.AllowedScopes.ToString(),
+            permission.IsRequestable,
+            permission.IsActive,
+            permission.CreatedAtUtc,
+            permission.UpdatedAtUtc,
+            permission.ArchivedAtUtc);
     }
 
     private static async Task AddProjectAdministratorAssignmentAsync(

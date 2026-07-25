@@ -191,7 +191,7 @@ public sealed class M06AuthorizationDecisionServiceTests
     public async Task Check_DeniesActiveMemberWithNoGrant()
     {
         var fixture = AuthorizationDecisionFixture.Create(ActorId);
-        fixture.AddBaseData();
+        fixture.AddBaseData(ownerUserId: Guid.Parse("88888888-8888-8888-8888-888888888888"));
         fixture.AddMembership(ActorId);
 
         var decision = await fixture.Service.CheckAsync(DefaultProjectQuery(), CancellationToken.None);
@@ -289,6 +289,31 @@ public sealed class M06AuthorizationDecisionServiceTests
             CancellationToken.None);
 
         ownerDecision.ShouldBeDenied(AuthorizationReasonCode.DeniedNoApplicableGrant);
+    }
+
+    [Fact]
+    public async Task Check_OtherUserContinuesForNonOwnerWithExplainOthersPermission()
+    {
+        var fixture = AuthorizationDecisionFixture.Create(ActorId);
+        fixture.AddBaseData(ownerUserId: Guid.Parse("88888888-8888-8888-8888-888888888888"));
+        fixture.AddUser(SubjectId);
+        fixture.AddMembership(ActorId);
+        fixture.AddMembership(SubjectId);
+        fixture.AddPermission(
+            normalizedKey: "pg.authorization.explain_others",
+            permissionId: Guid.Parse("77777777-7777-7777-7777-777777777777"));
+        fixture.AddProjectAdministratorPath(
+            ActorId,
+            ProjectId,
+            permissionId: Guid.Parse("77777777-7777-7777-7777-777777777777"),
+            permissionKey: "pg.authorization.explain_others");
+
+        var decision = await fixture.Service.CheckAsync(
+            DefaultProjectQuery(subjectUserId: SubjectId),
+            CancellationToken.None);
+
+        decision.ShouldBeDenied(AuthorizationReasonCode.DeniedNoApplicableGrant);
+        fixture.ReadService.LoadSingleCalls.Should().Be(2);
     }
 
     [Fact]
@@ -419,12 +444,14 @@ public sealed class M06AuthorizationDecisionServiceTests
 
         public void AddPermission(
             bool permissionActive = true,
-            PermissionAllowedScopes allowedScopes = PermissionAllowedScopes.OrganizationAndProject)
+            PermissionAllowedScopes allowedScopes = PermissionAllowedScopes.OrganizationAndProject,
+            string normalizedKey = PermissionKey,
+            Guid? permissionId = null)
         {
-            ReadService.Permissions[(OrganizationId, PermissionKey)] = new AuthorizationPermissionReadModel(
-                PermissionId,
+            ReadService.Permissions[(OrganizationId, normalizedKey)] = new AuthorizationPermissionReadModel(
+                permissionId ?? PermissionId,
                 null,
-                PermissionKey,
+                normalizedKey,
                 PermissionType.Platform,
                 allowedScopes,
                 permissionActive);
@@ -451,7 +478,8 @@ public sealed class M06AuthorizationDecisionServiceTests
             Guid projectId,
             bool roleIsActive = true,
             Guid? permissionId = null,
-            bool permissionIsActive = true)
+            bool permissionIsActive = true,
+            string permissionKey = PermissionKey)
         {
             ReadService.ProjectAdministratorPaths.Add(new ProjectAdministratorPermissionPathReadModel(
                 OrganizationId,
@@ -461,7 +489,7 @@ public sealed class M06AuthorizationDecisionServiceTests
                 roleIsActive,
                 RoleScopeType.Project,
                 permissionId ?? PermissionId,
-                PermissionKey,
+                permissionKey,
                 PermissionAllowedScopes.OrganizationAndProject,
                 permissionIsActive));
         }
