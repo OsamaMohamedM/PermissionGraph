@@ -60,6 +60,35 @@ public sealed class FoundationBehaviorTests
     }
 
     [Fact]
+    public async Task SwaggerUi_IsAlwaysAvailableAndRootRedirectsToSwagger()
+    {
+        using var factory = new PermissionGraphApiFactory(new Dictionary<string, string?>
+        {
+            ["ConnectionStrings:PermissionGraph"] = "Host=127.0.0.1;Port=1;Database=missing;Username=missing;Password=missing",
+            ["ConnectionStrings:Redis"] = "127.0.0.1:1"
+        });
+        using var redirectClient = factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+        using var client = factory.CreateClient();
+
+        var root = await redirectClient.GetAsync("/");
+        var ui = await client.GetAsync("/swagger/index.html");
+        var document = await client.GetAsync("/swagger/v1/swagger.json");
+
+        root.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        root.Headers.Location?.ToString().Should().Be("/swagger");
+        ui.StatusCode.Should().Be(HttpStatusCode.OK);
+        ui.Content.Headers.ContentType?.MediaType.Should().Be("text/html");
+        (await ui.Content.ReadAsStringAsync()).Should().Contain("PermissionGraph API");
+        document.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var json = await JsonDocument.ParseAsync(await document.Content.ReadAsStreamAsync());
+        json.RootElement.GetProperty("info").GetProperty("title").GetString().Should().Be("PermissionGraph API");
+    }
+
+    [Fact]
     public async Task EmptyMigration_AppliesToCleanPostgreSqlDatabase()
     {
         await using var postgres = new PostgreSqlBuilder("postgres:16.4-alpine")
